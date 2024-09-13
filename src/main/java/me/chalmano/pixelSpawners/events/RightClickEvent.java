@@ -3,10 +3,7 @@ package me.chalmano.pixelSpawners.events;
 import eu.decentsoftware.holograms.api.DHAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;
@@ -30,7 +27,7 @@ import java.util.Map;
 
 public class RightClickEvent implements Listener {
 
-    private static Map<Player, CreatureSpawner> clickedSpawnerMap = new HashMap<>();
+    private static Map<Player, Block> clickedSpawnerMap = new HashMap<>();
 
     private Inventory inventory;
 
@@ -73,25 +70,14 @@ public class RightClickEvent implements Listener {
 
     @EventHandler
     public void onSpawnerPlace(BlockPlaceEvent e) {
-
         Block blockPlaced = e.getBlockPlaced();
         if (blockPlaced.getType() != Material.SPAWNER) {
             return;
         }
 
-        CreatureSpawner creatureSpawner = (CreatureSpawner) blockPlaced.getState();
-
-        EntityType spawnedType = creatureSpawner.getSpawnedType();
-
-        String hologramText = "§a" + getSpawnerName(spawnedType) + " Spawner";
-        String name = getBlockHologramName(blockPlaced);
-
-        Location loc = blockPlaced.getLocation().toCenterLocation().add(0, 1, 0);
-
-        DHAPI.createHologram(name, loc, List.of(hologramText)).setSaveToFile(true);
+        createHologramForSpawner(blockPlaced);
     }
 
-    // todo remove bug when upgraded name is not changed, therefore is not removed when breaking
     @EventHandler
     public void onSpawnerBreak(BlockBreakEvent e) {
         Block block = e.getBlock();
@@ -99,7 +85,21 @@ public class RightClickEvent implements Listener {
             return;
         }
 
-        DHAPI.removeHologram(getBlockHologramName(block));
+        removeHologramForSpawner(block);
+    }
+
+    public void removeHologramForSpawner(Block spawnerBlock) {
+        DHAPI.removeHologram(getBlockHologramName(spawnerBlock));
+    }
+
+    public void createHologramForSpawner(Block spawnerBlock) {
+        CreatureSpawner creatureSpawner = (CreatureSpawner) spawnerBlock.getState();
+        EntityType spawnedType = creatureSpawner.getSpawnedType();
+        String hologramText = "§a" + getSpawnerName(spawnedType) + " Spawner";
+        String name = getBlockHologramName(spawnerBlock);
+
+        Location loc = spawnerBlock.getLocation().toCenterLocation().add(0, 1, 0);
+        DHAPI.createHologram(name, loc, true, List.of(hologramText));
     }
 
     @EventHandler
@@ -123,8 +123,8 @@ public class RightClickEvent implements Listener {
         Player player = e.getPlayer();
         Inventory inventory = Bukkit.createInventory(null, InventoryType.CHEST, Component.text("Upgrade Spawner", TextColor.color(93, 255, 0)));
 
-        // filling inventory with
-        ItemStack[] itemStacks = new ItemStack[27];
+        // filling inventory
+        ItemStack[] itemStacks = new ItemStack[inventory.getSize()];
         for (int i = 0; i < itemStacks.length; i++) {
             itemStacks[i] = new ItemStack(Material.MAGENTA_STAINED_GLASS_PANE);
             itemStacks[i].getItemMeta().displayName(Component.text(""));
@@ -136,7 +136,7 @@ public class RightClickEvent implements Listener {
 
         player.openInventory(inventory);
         this.inventory = inventory;
-        clickedSpawnerMap.put(player, creatureSpawner);
+        clickedSpawnerMap.put(player, clickedBlock);
 
         e.setCancelled(true);
     }
@@ -147,19 +147,24 @@ public class RightClickEvent implements Listener {
         ItemStack item = e.getCurrentItem();
         Player player = (Player) e.getWhoClicked();
 
-        if(e.getInventory().equals(inventory)){
+        if (e.getInventory().equals(inventory)) {
             e.setCancelled(true);
         }
 
-        CreatureSpawner cs = clickedSpawnerMap.get(player);
-
-        if(cs == null){
-            return;
-        }
+        CreatureSpawner cs = (CreatureSpawner) clickedSpawnerMap.get(player).getState();
 
         if (!getItem(cs).equals(item)) {
             return;
         }
+
+        upgradeSpawner(player);
+    }
+
+    public void upgradeSpawner(Player player) {
+        //todo BUG: #removeHologramForSpawner() method won't remove the hologram as spawnerBlock object state is updated.
+        Block spawnerBlock = clickedSpawnerMap.get(player);
+
+        CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
 
         EntityType spawnedType = cs.getSpawnedType() == null ? EntityType.MINECART_MOB_SPAWNER : cs.getSpawnedType();
         cs.setSpawnedType(EntityType.fromId(spawnedType.getTypeId() + 1));
@@ -168,10 +173,13 @@ public class RightClickEvent implements Listener {
 
         spawnedType = cs.getSpawnedType();
 
-
         player.closeInventory();
         player.sendMessage("§a(!) Spawner has been upgraded to " + getSpawnerName(spawnedType));
-        player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE,10F,10F);
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 10F, 10F);
+        player.getWorld().playEffect(player.getLocation(), Effect.SMOKE, 10, 1);
+
+        removeHologramForSpawner(spawnerBlock);
+        createHologramForSpawner(spawnerBlock);
     }
 
     @EventHandler
