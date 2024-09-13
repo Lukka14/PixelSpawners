@@ -1,16 +1,12 @@
 package me.chalmano.pixelSpawners.events;
 
-import me.chalmano.pixelSpawners.PixelSpawners;
-import me.filoghost.holographicdisplays.api.HolographicDisplaysAPI;
-import me.filoghost.holographicdisplays.api.hologram.Hologram;
-import me.filoghost.holographicdisplays.api.hologram.line.ItemHologramLine;
-import me.filoghost.holographicdisplays.api.hologram.line.TextHologramLine;
+import eu.decentsoftware.holograms.api.DHAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;
@@ -18,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -25,57 +22,88 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RightClickEvent implements Listener {
 
-    private static ItemStack item = null;
-
     private static Map<Player, CreatureSpawner> clickedSpawnerMap = new HashMap<>();
 
-    public static ItemStack getItem() {
+    private Inventory inventory;
 
-        if (item != null) {
-            return item;
-        }
+    public ItemStack getItem(CreatureSpawner cs) {
+        EntityType spawnedType = cs.getSpawnedType() == null ? EntityType.MINECART_MOB_SPAWNER : cs.getSpawnedType();
+        String newSpawnerType = getSpawnerName(EntityType.fromId(spawnedType.getTypeId() + 1));
 
-        ItemStack item = new ItemStack(Material.SQUID_SPAWN_EGG);
-        item.getItemMeta().displayName(Component.text("Upgrade Spawner").color(TextColor.color(0x40F70C)));
+        ItemStack item = new ItemStack(Material.ANVIL);
+        ItemMeta itemMeta = item.getItemMeta();
 
-        return RightClickEvent.item = item;
+        itemMeta.displayName(Component.text("Upgrade Spawner to " + newSpawnerType).color(TextColor.color(0xFFB80C)));
+        item.setItemMeta(itemMeta);
+        return item;
+    }
+
+    // BLOCK MUST BE A SPAWNER
+    public String getBlockHologramName(Block block) {
+        CreatureSpawner creatureSpawner = (CreatureSpawner) block.getState();
+        EntityType spawnedType = creatureSpawner.getSpawnedType();
+
+        String locationStr = block.getLocation().toString().
+                replace('{', '_')
+                .replace('}', '_')
+                .replace('=', '_')
+                .replace(',', '_')
+                .replace('.', '_')
+                .replace(' ', '_');
+
+        return getSpawnerName(spawnedType) + "_SPAWNER_" + locationStr;
+    }
+
+
+    public String firstToUpperCase(String str) {
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+    }
+
+    public String getSpawnerName(EntityType spawnedType) {
+        return spawnedType == null ? "Unknown" : firstToUpperCase(spawnedType.name());
     }
 
     @EventHandler
-    public void onSpawnerPlace(BlockPlaceEvent e){
+    public void onSpawnerPlace(BlockPlaceEvent e) {
 
         Block blockPlaced = e.getBlockPlaced();
         if (blockPlaced.getType() != Material.SPAWNER) {
             return;
         }
 
-        Plugin plugin = PixelSpawners.getInstance(); // Your plugin's instance
-        Location where = blockPlaced.getLocation(); // The location where the hologram will be placed
-        HolographicDisplaysAPI api = HolographicDisplaysAPI.get(plugin); // The API instance for your plugin
-        Hologram hologram = api.createHologram(where);
-
         CreatureSpawner creatureSpawner = (CreatureSpawner) blockPlaced.getState();
 
-        TextHologramLine textLine = hologram.getLines().appendText("§a"+creatureSpawner.getSpawnedType().name()+" Spawner");
+        EntityType spawnedType = creatureSpawner.getSpawnedType();
 
-//        TextHologramLine textLine1 = hologram.getLines().appendText("...");
-//        TextHologramLine textLine2 = hologram.getLines().insertText(0, "...");
+        String hologramText = "§a" + getSpawnerName(spawnedType) + " Spawner";
+        String name = getBlockHologramName(blockPlaced);
 
-        ItemHologramLine itemLine1 = hologram.getLines().appendItem(new ItemStack(Material.STONE));
-//        ItemHologramLine itemLine2 = hologram.getLines().insertItem(0, new ItemStack(Material.STONE));
+        Location loc = blockPlaced.getLocation().toCenterLocation().add(0, 1, 0);
 
+        DHAPI.createHologram(name, loc, List.of(hologramText)).setSaveToFile(true);
+    }
+
+    // todo remove bug when upgraded name is not changed, therefore is not removed when breaking
+    @EventHandler
+    public void onSpawnerBreak(BlockBreakEvent e) {
+        Block block = e.getBlock();
+        if (block.getType() != Material.SPAWNER) {
+            return;
+        }
+
+        DHAPI.removeHologram(getBlockHologramName(block));
     }
 
     @EventHandler
     public void onSpawnerRightClick(PlayerInteractEvent e) {
-
         if (e.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
@@ -93,35 +121,57 @@ public class RightClickEvent implements Listener {
         CreatureSpawner creatureSpawner = (CreatureSpawner) clickedBlock.getState();
 
         Player player = e.getPlayer();
-        Inventory inventory = Bukkit.createInventory(null, InventoryType.CHEST, Component.text("Upgrade Spawner"));
+        Inventory inventory = Bukkit.createInventory(null, InventoryType.CHEST, Component.text("Upgrade Spawner", TextColor.color(93, 255, 0)));
 
-        inventory.setItem(13, getItem());
+        // filling inventory with
+        ItemStack[] itemStacks = new ItemStack[27];
+        for (int i = 0; i < itemStacks.length; i++) {
+            itemStacks[i] = new ItemStack(Material.MAGENTA_STAINED_GLASS_PANE);
+            itemStacks[i].getItemMeta().displayName(Component.text(""));
+        }
+        inventory.setContents(itemStacks);
+
+
+        inventory.setItem(13, getItem(creatureSpawner));
 
         player.openInventory(inventory);
+        this.inventory = inventory;
         clickedSpawnerMap.put(player, creatureSpawner);
+
+        e.setCancelled(true);
     }
-
-
 
 
     @EventHandler
     public void onItemClick(InventoryClickEvent e) {
         ItemStack item = e.getCurrentItem();
+        Player player = (Player) e.getWhoClicked();
 
-        if (!getItem().equals(item)) {
+        if(e.getInventory().equals(inventory)){
+            e.setCancelled(true);
+        }
+
+        CreatureSpawner cs = clickedSpawnerMap.get(player);
+
+        if(cs == null){
             return;
         }
 
-        Player player = (Player) e.getWhoClicked();
+        if (!getItem(cs).equals(item)) {
+            return;
+        }
 
-        CreatureSpawner cs = clickedSpawnerMap.get(player);
-        cs.setSpawnedType(EntityType.fromId(cs.getSpawnedType().getTypeId() + 1));
+        EntityType spawnedType = cs.getSpawnedType() == null ? EntityType.MINECART_MOB_SPAWNER : cs.getSpawnedType();
+        cs.setSpawnedType(EntityType.fromId(spawnedType.getTypeId() + 1));
         cs.update();
         cs.setDelay(100);
 
-        e.setCancelled(true);
+        spawnedType = cs.getSpawnedType();
+
+
         player.closeInventory();
-        player.sendMessage("§a(!) Spawner has been upgraded to "+cs.getSpawnedType().name());
+        player.sendMessage("§a(!) Spawner has been upgraded to " + getSpawnerName(spawnedType));
+        player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE,10F,10F);
     }
 
     @EventHandler
@@ -130,6 +180,5 @@ public class RightClickEvent implements Listener {
             event.getEntity().setHealth(0);
         }
     }
-
 
 }

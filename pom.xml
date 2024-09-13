@@ -63,6 +63,14 @@
             <id>codemc-repo</id>
             <url>https://repo.codemc.io/repository/maven-public/</url>
         </repository>
+        <repository>
+            <id>jitpack</id>
+            <url>https://jitpack.io/</url>
+        </repository>
+        <repository>
+            <id>codemc</id>
+            <url>https://repo.codemc.io/repository/maven-public/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -73,9 +81,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>me.filoghost.holographicdisplays</groupId>
-            <artifactId>holographicdisplays-api</artifactId>
-            <version>3.0.0</version>
+            <groupId>com.github.decentsoftware-eu</groupId>
+            <artifactId>decentholograms</artifactId>
+            <version>2.8.11</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
