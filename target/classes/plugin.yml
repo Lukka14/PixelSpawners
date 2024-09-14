@@ -1,0 +1,19 @@
+name: PixelSpawners
+version: '1.0'
+main: me.chalmano.pixelSpawners.PixelSpawners
+api-version: '1.20'
+authors: [ Chalmano ]
+
+dependencies:
+  server:
+    DecentHolograms:
+      load: BEFORE
+      required: true # This is the default when not present
+
+commands:
+  pixelspawners:
+    description: "Reload plugin configurations"
+    usage: "/ps reload"
+    aliases: [ps]
+    permission: pixelspawners.reload
+    permission-message: "You do not have permission to use this command"

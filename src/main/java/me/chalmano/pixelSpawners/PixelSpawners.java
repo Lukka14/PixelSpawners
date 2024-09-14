@@ -1,29 +1,32 @@
 package me.chalmano.pixelSpawners;
 
-import me.chalmano.pixelSpawners.events.RightClickEvent;
+import lombok.Getter;
+import me.chalmano.pixelSpawners.commands.ReloadCommand;
+import me.chalmano.pixelSpawners.commands.ReloadTabCompleter;
+import me.chalmano.pixelSpawners.events.SpawnerEvents;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PixelSpawners extends JavaPlugin {
 
+    @Getter
     private static PixelSpawners instance;
 
     @SuppressWarnings("ConstantConditions")
     @Override
     public void onEnable() {
         // Plugin startup logic
+        this.saveDefaultConfig();
 
+        this.getLogger().info("PixelSpawners plugin enabled!");
 
-        this.getLogger().info("§aPixelSpawners plugin enabled!");
+        this.getCommand("pixelspawners").setExecutor(new ReloadCommand());
+        this.getCommand("pixelspawners").setTabCompleter(new ReloadTabCompleter());
 
-        this.getServer().getPluginManager().registerEvents(new RightClickEvent(),this);
+        this.getServer().getPluginManager().registerEvents(new SpawnerEvents(),this);
     }
 
     public PixelSpawners(){
         instance = this;
-    }
-
-    public static PixelSpawners getInstance() {
-        return instance;
     }
 
 

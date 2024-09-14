@@ -1,0 +1,38 @@
+[
+  {
+    "spawner_type": "RABBIT",
+    "price": 10000,
+    "display_item": "RABBIT_FOOT",
+    "spawn_per_minute": 60,
+    "drops": [
+      {
+        "item": "RABBIT",
+        "amount": 1,
+        "chance": 0.7
+      },
+      {
+        "item": "RABBIT_FOOT",
+        "amount": 1,
+        "chance": 0.3
+      }
+    ]
+  },
+  {
+    "spawner_type": "CHICKEN",
+    "price": 10000,
+    "display_item": "EGG",
+    "spawn_per_minute": 45,
+    "drops": [
+      {
+        "item": "CHICKEN",
+        "amount": 1,
+        "chance": 0.1
+      },
+      {
+        "item": "FEATHER",
+        "amount": 1,
+        "chance": 0.3
+      }
+    ]
+  }
+]
