@@ -13,20 +13,18 @@ import java.util.List;
 public class SpawnerUtils {
 
     /**
-     *
      * @param block possible spawner block
      * @return true if spawner block is in the spawners.json file
      */
-    public static boolean isValidSpawner(Block block){
+    public static boolean isValidSpawner(Block block) {
         return getSpawnerDataFor(block) == null;
     }
 
     /**
-     *
      * @param block possible spawner block
      * @return null if not found
      */
-    public static SpawnerData getSpawnerDataFor(Block block){
+    public static SpawnerData getSpawnerDataFor(Block block) {
         if (block.getType() != Material.SPAWNER) {
             Logger.info("Block is not a valid spawner #getSpawnerDataFor()");
             return null;
@@ -37,12 +35,22 @@ public class SpawnerUtils {
     }
 
     /**
-     *
      * @param creatureSpawner creatureSpawner
      * @return null if not found
      */
-    public static SpawnerData getSpawnerDataFor(@NotNull CreatureSpawner creatureSpawner){
-        EntityType spawnedType = creatureSpawner.getSpawnedType();
+    public static SpawnerData getSpawnerDataFor(@NotNull CreatureSpawner creatureSpawner) {
+        return getSpawnerDataFor(creatureSpawner.getSpawnedType());
+    }
+
+    /**
+     * @param spawnedType spawnedType
+     * @return null if not found
+     */
+    public static SpawnerData getSpawnerDataFor(EntityType spawnedType) {
+
+        if(spawnedType == null){
+            return null;
+        }
 
         List<SpawnerData> spawnerDataList = SpawnersReader.getInstance().getSpawnerData();
 
@@ -53,11 +61,11 @@ public class SpawnerUtils {
             }
         }
 
-        Logger.info("No spawners found for type " + spawnedType+" #getSpawnerDataFor()");
+        Logger.info("No spawners found for type " + spawnedType + " #getSpawnerDataFor()");
         return null;
     }
 
-    public static SpawnerData getNextSpawnerData(CreatureSpawner currentCreatureSpawner){
+    public static SpawnerData getNextSpawnerData(CreatureSpawner currentCreatureSpawner) {
         SpawnerData currentSpawnerData = SpawnerUtils.getSpawnerDataFor(currentCreatureSpawner);
         if (currentSpawnerData == null) {
             return null;
@@ -66,7 +74,7 @@ public class SpawnerUtils {
         List<SpawnerData> spawnerDataList = SpawnersReader.getInstance().getSpawnerData();
         int currentSpawnerDataIndex = spawnerDataList.indexOf(currentSpawnerData);
 
-        if(currentSpawnerDataIndex >= spawnerDataList.size() - 1) {
+        if (currentSpawnerDataIndex >= spawnerDataList.size() - 1) {
             Logger.info("No next item in the spawnerDataList #getNextSpawnerData()");
             return null;
         }
@@ -76,7 +84,7 @@ public class SpawnerUtils {
 
 
     public static String getSpawnerName(EntityType spawnedType) {
-        return spawnedType == null ? null : CommonUtils.firstToUpperCase(spawnedType.name());
+        return spawnedType == null ? "Unknown" : CommonUtils.firstToUpperCase(spawnedType.name());
     }
 
     public static boolean upgradeSpawnerTo(Block spawnerBlock, EntityType entityType) {
@@ -88,10 +96,32 @@ public class SpawnerUtils {
         }
 
         cs.setSpawnedType(entityType);
-        cs.update();
-        cs.setDelay(100);
+
+        // update if setSpawnPerMinute() method is no longer used.
+//        cs.update(true);
+
+        int spawnPerMinute = getSpawnerDataFor(cs).getSpawn_time();
+        setSpawnTime(cs, spawnPerMinute);
+
 
         return true;
+    }
+
+    // spawn time in seconds,
+    // if spawnTime is 30 this means 1 mob will spawn every 30 seconds.
+    public static void setSpawnTime(CreatureSpawner cs, int spawnTime) {
+        int delay = spawnTime * 20;
+
+        if(delay > cs.getMinSpawnDelay()){
+            cs.setMaxSpawnDelay(delay);
+            cs.setMinSpawnDelay(delay);
+        }else{
+            cs.setMinSpawnDelay(delay);
+            cs.setMaxSpawnDelay(delay);
+        }
+
+        cs.setSpawnCount(1);
+        cs.update(true);
     }
 
 }

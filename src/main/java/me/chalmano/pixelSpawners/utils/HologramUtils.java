@@ -1,11 +1,14 @@
 package me.chalmano.pixelSpawners.utils;
 
 import eu.decentsoftware.holograms.api.DHAPI;
+import me.chalmano.pixelSpawners.PixelSpawners;
+import me.chalmano.pixelSpawners.models.SpawnerData;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class HologramUtils {
@@ -27,26 +30,37 @@ public class HologramUtils {
     }
 
     public static void removeHologramForSpawner(Block spawnerBlock) {
-        DHAPI.removeHologram(getBlockHologramName(spawnerBlock));
+        removeHologram(getBlockHologramName(spawnerBlock));
     }
 
     public static void removeHologram(String hologramName) {
-        DHAPI.removeHologram(hologramName);
+        try{
+            DHAPI.removeHologram(hologramName);
+        }catch (Exception e) {
+            PixelSpawners.getInstance().getLogger().warning("Failed to remove hologram " + hologramName);
+        }
     }
 
     public static void createHologramForSpawner(Block spawnerBlock) {
         CreatureSpawner creatureSpawner = (CreatureSpawner) spawnerBlock.getState();
         EntityType spawnedType = creatureSpawner.getSpawnedType();
+
+        List<String> lines = new ArrayList<>();
+
         String hologramText = "§a" + SpawnerUtils.getSpawnerName(spawnedType) + " Spawner";
+        lines.add(hologramText);
+
+        SpawnerData spawnerDataFor = SpawnerUtils.getSpawnerDataFor(creatureSpawner);
+
+        if(spawnerDataFor != null) {
+            String hologramLine2 = "§aSpawn time: " + spawnerDataFor.getSpawn_time()+"s";
+            lines.add(hologramLine2);
+        }
+
         String name = getBlockHologramName(spawnerBlock);
-
         Location loc = spawnerBlock.getLocation().toCenterLocation().add(0, 1, 0);
-        DHAPI.createHologram(name, loc, true, List.of(hologramText));
-    }
 
-    public static void updateHologramForSpawner(Block spawnerBlock) {
-        HologramUtils.removeHologramForSpawner(spawnerBlock);
-        HologramUtils.createHologramForSpawner(spawnerBlock);
+        DHAPI.createHologram(name, loc, true, lines);
     }
 
 }

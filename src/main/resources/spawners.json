@@ -2,18 +2,13 @@
   {
     "spawner_type": "RABBIT",
     "price": 10000,
-    "display_item": "RABBIT_FOOT",
-    "spawn_per_minute": 60,
+    "display_item": "RABBIT_HIDE",
+    "spawn_time": 60,
     "drops": [
       {
-        "item": "RABBIT",
+        "item": "COOKED_RABBIT",
         "amount": 1,
-        "chance": 0.7
-      },
-      {
-        "item": "RABBIT_FOOT",
-        "amount": 1,
-        "chance": 0.3
+        "chance": 1
       }
     ]
   },
@@ -21,17 +16,324 @@
     "spawner_type": "CHICKEN",
     "price": 10000,
     "display_item": "EGG",
-    "spawn_per_minute": 45,
+    "spawn_time": 45,
     "drops": [
       {
-        "item": "CHICKEN",
+        "item": "COOKED_CHICKEN",
         "amount": 1,
-        "chance": 0.1
-      },
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "PIG",
+    "price": 10000,
+    "display_item": "COOKED_PORKCHOP",
+    "spawn_time": 30,
+    "drops": [
       {
-        "item": "FEATHER",
+        "item": "COOKED_PORKCHOP",
         "amount": 1,
-        "chance": 0.3
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "SHEEP",
+    "price": 10000,
+    "display_item": "COOKED_MUTTON",
+    "spawn_time": 15,
+    "drops": [
+      {
+        "item": "COOKED_MUTTON",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "COW",
+    "price": 30000,
+    "display_item": "COOKED_BEEF",
+    "spawn_time": 60,
+    "drops": [
+      {
+        "item": "COOKED_BEEF",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "SALMON",
+    "price": 30000,
+    "display_item": "COOKED_SALMON",
+    "spawn_time": 45,
+    "drops": [
+      {
+        "item": "COOKED_SALMON",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "SQUID",
+    "price": 30000,
+    "display_item": "INK_SAC",
+    "spawn_time": 30,
+    "drops": [
+      {
+        "item": "INK_SAC",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "GLOW_SQUID",
+    "price": 30000,
+    "display_item": "GLOW_INK_SAC",
+    "spawn_time": 15,
+    "drops": [
+      {
+        "item": "GLOW_INK_SAC",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "ZOMBIE",
+    "price": 60000,
+    "display_item": "ROTTEN_FLESH",
+    "spawn_time": 60,
+    "drops": [
+      {
+        "item": "ROTTEN_FLESH",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "PHANTOM",
+    "price": 60000,
+    "display_item": "PHANTOM_MEMBRANE",
+    "spawn_time": 45,
+    "drops": [
+      {
+        "item": "PHANTOM_MEMBRANE",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "SPIDER",
+    "price": 60000,
+    "display_item": "SPIDER_EYE",
+    "spawn_time": 30,
+    "drops": [
+      {
+        "item": "SPIDER_EYE",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "SKELETON",
+    "price": 60000,
+    "display_item": "SKELETON_SKULL",
+    "spawn_time": 15,
+    "drops": [
+      {
+        "item": "BUBBLE_CORAL",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "TADPOLE",
+    "price": 100000,
+    "display_item": "DRIED_KELP_BLOCK",
+    "spawn_time": 60,
+    "drops": [
+      {
+        "item": "DRIED_KELP_BLOCK",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "CREEPER",
+    "price": 100000,
+    "display_item": "CREEPER_HEAD",
+    "spawn_time": 45,
+    "drops": [
+      {
+        "item": "FIRE_CORAL",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "WITCH",
+    "price": 100000,
+    "display_item": "EXPERIENCE_BOTTLE",
+    "spawn_time": 30,
+    "drops": [
+      {
+        "item": "TUBE_CORAL",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "FROG",
+    "price": 100000,
+    "display_item": "VERDANT_FROGLIGHT",
+    "spawn_time": 15,
+    "drops": [
+      {
+        "item": "VERDANT_FROGLIGHT",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "PILLAGER",
+    "price": 300000,
+    "display_item": "CROSSBOW",
+    "spawn_time": 60,
+    "drops": [
+      {
+        "item": "POISONOUS_POTATO",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "BEE",
+    "price": 300000,
+    "display_item": "HONEYCOMB",
+    "spawn_time": 45,
+    "drops": [
+      {
+        "item": "HONEYCOMB",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "VEX",
+    "price": 300000,
+    "display_item": "FIRE_CHARGE",
+    "spawn_time": 30,
+    "drops": [
+      {
+        "item": "FIRE_CHARGE",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "PIGLIN_BRUTE",
+    "price": 400000,
+    "display_item": "PIGLIN_HEAD",
+    "spawn_time": 15,
+    "drops": [
+      {
+        "item": "GILDED_BLACKSTONE",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "SHULKER",
+    "price": 400000,
+    "display_item": "SHULKER_SHELL",
+    "spawn_time": 45,
+    "drops": [
+      {
+        "item": "SHULKER_SHELL",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "ENDERMAN",
+    "price": 400000,
+    "display_item": "ENDER_EYE",
+    "spawn_time": 30,
+    "drops": [
+      {
+        "item": "ENDER_EYE",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "RAVAGER",
+    "price": 400000,
+    "display_item": "GOAT_HORN",
+    "spawn_time": 15,
+    "drops": [
+      {
+        "item": "GOAT_HORN",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "WARDEN",
+    "price": 450000,
+    "display_item": "SCULK",
+    "spawn_time": 15,
+    "drops": [
+      {
+        "item": "LIGHTNING_ROD",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "SNOWMAN",
+    "price": 450000,
+    "display_item": "SNOWBALL",
+    "spawn_time": 30,
+    "drops": [
+      {
+        "item": "NAUTILUS_SHELL",
+        "amount": 1,
+        "chance": 1
+      }
+    ]
+  },
+  {
+    "spawner_type": "IRON_GOLEM",
+    "price": 500000,
+    "display_item": "WITHER_ROSE",
+    "spawn_time": 15,
+    "drops": [
+      {
+        "item": "WITHER_ROSE",
+        "amount": 1,
+        "chance": 1
       }
     ]
   }

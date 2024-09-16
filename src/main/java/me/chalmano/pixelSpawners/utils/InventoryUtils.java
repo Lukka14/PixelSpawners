@@ -1,14 +1,12 @@
 package me.chalmano.pixelSpawners.utils;
 
+import me.chalmano.pixelSpawners.inventory.SpawnerInventory;
 import me.chalmano.pixelSpawners.models.SpawnerData;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.util.HSVLike;
-import net.kyori.adventure.util.RGBLike;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.CreatureSpawner;
@@ -19,24 +17,36 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class InventoryUtils {
+
+    public static final int UPGRADE_ITEM_INDEX = 13;
 
     public static Inventory createInventory(CreatureSpawner currentCreatureSpawner) {
 
         SpawnerData nextSpawnerData = SpawnerUtils.getNextSpawnerData(currentCreatureSpawner);
 
+        Logger.info("Creating new inventory");
+        Inventory inventory = Bukkit.createInventory(new SpawnerInventory(), InventoryType.CHEST, Component.text("Upgrade Spawner", TextColor.color(110, 49, 33)));
+
+        ItemStack upgradeItem = null;
+
         if (nextSpawnerData == null) {
-            return null;
+            SpawnerData currentSpawnerData = SpawnerUtils.getSpawnerDataFor(currentCreatureSpawner);
+
+            if(currentSpawnerData == null ){
+                return null;
+            }
+
+            upgradeItem = createLastStageItem(currentSpawnerData);
+            fillInventory(inventory, Material.ORANGE_STAINED_GLASS_PANE);
+        } else {
+            fillInventory(inventory, Material.GRAY_STAINED_GLASS_PANE);
+            upgradeItem = createUpgradeItem(nextSpawnerData);
         }
 
-        Logger.info("Creating new inventory");
-        Inventory inventory = Bukkit.createInventory(null, InventoryType.CHEST, Component.text("Upgrade Spawner", TextColor.color(93, 255, 0)));
-        fillInventory(inventory, Material.GRAY_STAINED_GLASS_PANE);
-
         // todo if upgrade is max still open the inventory with current mob display item saying it's maxed.
-        inventory.setItem(13, createUpgradeItem(nextSpawnerData));
+        inventory.setItem(UPGRADE_ITEM_INDEX, upgradeItem);
 
         return inventory;
     }
@@ -55,7 +65,7 @@ public class InventoryUtils {
 
         ItemMeta itemMeta = itemStack.getItemMeta();
 
-        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300Upgrade to " + CommonUtils.firstToUpperCase(nextSpawnerData.getSpawner_type()) + " spawner").decoration(TextDecoration.ITALIC,false);
+        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300Upgrade to " + CommonUtils.firstToUpperCase(nextSpawnerData.getSpawner_type()) + " Spawner").decoration(TextDecoration.ITALIC, false);
         itemMeta.displayName(itemName);
 
         List<Component> loreList = new ArrayList<>();
@@ -63,12 +73,26 @@ public class InventoryUtils {
         String loreColor = "&#f5f520";
 
         loreList.add(Component.empty());
-        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Price: &f$" + nextSpawnerData.getPrice()).decoration(TextDecoration.ITALIC,false));
-        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Spawn per minute: &f" + nextSpawnerData.getSpawn_per_minute()).decoration(TextDecoration.ITALIC,false));
+        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Price: &f$" + nextSpawnerData.getPrice()).decoration(TextDecoration.ITALIC, false));
+        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Spawn time: &f" + nextSpawnerData.getSpawn_time()+"s").decoration(TextDecoration.ITALIC, false));
 
         itemMeta.lore(loreList);
         itemStack.setItemMeta(itemMeta);
 
         return itemStack;
     }
+
+    public static ItemStack createLastStageItem(SpawnerData currentSpawnerData) {
+        ItemStack itemStack = new ItemStack(Material.valueOf(currentSpawnerData.getDisplay_item()));
+
+        ItemMeta itemMeta = itemStack.getItemMeta();
+
+        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300Max Stage reached").decoration(TextDecoration.ITALIC, false);
+        itemMeta.displayName(itemName);
+
+        itemStack.setItemMeta(itemMeta);
+
+        return itemStack;
+    }
+
 }

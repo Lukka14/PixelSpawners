@@ -1,1 +1,14 @@
 enable_debug: false
+
+# NOTE
+# If you are using Essentials plugin make sure to give 'essentials.spawnerconvert.*'
+# permission to players. Otherwise, spawner type is removed upon placing the spawner.
+
+# Get available sounds: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
+upgrade-sound: ENTITY_PLAYER_LEVELUP
+
+# Get available particles: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Particle.html
+upgrade-particle: DRAGON_BREATH
+
+# Create hologram for spawner which is not in spawners.json
+all-spawner-holograms: false

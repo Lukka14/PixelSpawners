@@ -1,35 +1,40 @@
 package me.chalmano.pixelSpawners.events;
 
 import me.chalmano.pixelSpawners.PixelSpawners;
+import me.chalmano.pixelSpawners.inventory.SpawnerInventory;
+import me.chalmano.pixelSpawners.models.Drop;
 import me.chalmano.pixelSpawners.models.SpawnerData;
 import me.chalmano.pixelSpawners.utils.HologramUtils;
 import me.chalmano.pixelSpawners.utils.InventoryUtils;
 import me.chalmano.pixelSpawners.utils.Logger;
 import me.chalmano.pixelSpawners.utils.SpawnerUtils;
-import org.bukkit.Effect;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import net.milkbowl.vault.economy.Economy;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class SpawnerEvents implements Listener {
 
     private static final Map<Player, Block> clickedSpawnerMap = new HashMap<>();
+
+    private final Set<Entity> spawnerEntities = new HashSet<>();
 
     @EventHandler
     public void onSpawnerPlace(BlockPlaceEvent e) {
@@ -38,7 +43,22 @@ public class SpawnerEvents implements Listener {
             return;
         }
 
-        HologramUtils.createHologramForSpawner(blockPlaced);
+        CreatureSpawner cs = (CreatureSpawner) blockPlaced.getState();
+        SpawnerData spawnerDataFor = SpawnerUtils.getSpawnerDataFor(cs);
+        if(spawnerDataFor != null) {
+            int spawnTime = spawnerDataFor.getSpawn_time();
+            SpawnerUtils.setSpawnTime(cs, spawnTime);
+        }
+
+        // create hologram
+        if(spawnerDataFor == null){
+            if(PixelSpawners.getInstance().getConfig().getBoolean("all-spawner-holograms")){
+                HologramUtils.createHologramForSpawner(blockPlaced);
+            }
+        }else{
+            HologramUtils.createHologramForSpawner(blockPlaced);
+        }
+
     }
 
 
@@ -91,7 +111,13 @@ public class SpawnerEvents implements Listener {
 
     @EventHandler
     public void onItemClick(InventoryClickEvent e) {
-        ItemStack item = e.getCurrentItem();
+
+        if (!(e.getInventory().getHolder(false) instanceof SpawnerInventory)) {
+            return;
+        }
+        e.setCancelled(true);
+
+//        ItemStack item = e.getCurrentItem();
         Player player = (Player) e.getWhoClicked();
 
         Block spawnerBlock = clickedSpawnerMap.get(player);
@@ -113,15 +139,13 @@ public class SpawnerEvents implements Listener {
         Logger.info("Place2");
 
 
-        if (e.getInventory().equals(inventory)) {
-            e.setCancelled(true);
-        }
-
-        Logger.info("Place3");
-
-        if (!inventory.getItem(e.getSlot()).equals(item)) {
+        if (!inventory.getItem(InventoryUtils.UPGRADE_ITEM_INDEX).equals(e.getCurrentItem())) {
             return;
         }
+//        // check if the 'upgrade item' is clicked
+//        if (!inventory.getItem(e.getSlot()).equals(item)) {
+//            return;
+//        }
 
         Logger.info("Place4");
         SpawnerData nextSpawnerData = SpawnerUtils.getNextSpawnerData(cs);
@@ -134,28 +158,77 @@ public class SpawnerEvents implements Listener {
 
         String hologramName = HologramUtils.getBlockHologramName(spawnerBlock);
 
-        // todo check player balance
+        Economy economy = PixelSpawners.getEconomy();
+        double playBalance = economy.getBalance(player);
+
+        if (playBalance < nextSpawnerData.getPrice()) {
+            player.sendMessage("§c(!) You don't have enough balance!");
+            player.closeInventory();
+            return;
+        }
 
         if (!SpawnerUtils.upgradeSpawnerTo(spawnerBlock, spawnedType)) {
             return;
         }
+        economy.withdrawPlayer(player, nextSpawnerData.getPrice());
 
         Logger.info("Place6");
         HologramUtils.removeHologram(hologramName);
         HologramUtils.createHologramForSpawner(spawnerBlock);
 
-
         player.closeInventory();
         player.sendMessage("§a(!) Spawner has been upgraded to " + SpawnerUtils.getSpawnerName(spawnedType));
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 10F, 10F);
-        player.getWorld().playEffect(player.getLocation(), Effect.SMOKE, 10, 1);
+
+        Location spawnerCenterLocation = spawnerBlock.getLocation().toCenterLocation();
+
+        Sound sound = Sound.valueOf(PixelSpawners.getInstance().getConfig().getString("upgrade-sound"));
+        Particle particle = Particle.valueOf(PixelSpawners.getInstance().getConfig().getString("upgrade-particle"));
+        player.getWorld().playSound(spawnerCenterLocation, sound, 10F, 1F);
+        player.getWorld().spawnParticle(particle, spawnerCenterLocation , 100);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCreatureSpawnEvent(CreatureSpawnEvent event) {
+
+        if(SpawnerUtils.getSpawnerDataFor(event.getEntityType()) == null){
+            return;
+        }
+
+        if (!event.getSpawnReason().equals(CreatureSpawnEvent.SpawnReason.SPAWNER)) {
+            return;
+        }
+
+        spawnerEntities.add(event.getEntity());
+//            PixelSpawners.getInstance().getLogger().info("Killing: "+event.getEntityType());
+        event.getEntity().setHealth(0);
     }
 
     @EventHandler
-    public void onCreatureSpawnEvent(CreatureSpawnEvent event) {
-        if (event.getSpawnReason().equals(CreatureSpawnEvent.SpawnReason.SPAWNER)) {
-            event.getEntity().setHealth(0);
+    public void onEntityDeath(EntityDeathEvent e) {
+
+        if (!spawnerEntities.remove(e.getEntity())) {
+            return;
         }
+
+        SpawnerData spawnerDataFor = SpawnerUtils.getSpawnerDataFor(e.getEntityType());
+
+        if(spawnerDataFor == null) {
+            PixelSpawners.getInstance().getLogger().warning("Spawner data for "+e.getEntityType().name()+" was not found, Entity won't drop custom drops.");
+            return;
+        }
+
+        List<Drop> dropList = spawnerDataFor.getDrops();
+
+        List<ItemStack> dropItems = new ArrayList<>();
+
+        for (Drop drop : dropList) {
+            if (Math.random() < drop.getChance()) {
+                dropItems.add(new ItemStack(Material.valueOf(drop.getItem()), (drop.getAmount())));
+            }
+        }
+
+        e.getDrops().clear();
+        e.getDrops().addAll(dropItems);
     }
 
 }
