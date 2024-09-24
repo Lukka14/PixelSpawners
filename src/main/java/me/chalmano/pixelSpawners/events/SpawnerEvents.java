@@ -39,6 +39,7 @@ public class SpawnerEvents implements Listener {
 
     private final Set<Entity> spawnerEntities = new HashSet<>();
 
+
     @EventHandler
     public void onSpawnerPlace(BlockPlaceEvent e) {
         Block blockPlaced = e.getBlockPlaced();
@@ -61,6 +62,7 @@ public class SpawnerEvents implements Listener {
         } else {
             HologramUtils.createHologramForSpawner(blockPlaced);
         }
+
 
     }
 
@@ -95,17 +97,17 @@ public class SpawnerEvents implements Listener {
         Logger.info("Material type is SPAWNER #onSpawnerRightClick()");
 
         Logger.info("Place-1");
-        CreatureSpawner creatureSpawner = (CreatureSpawner) clickedBlock.getState();
+//        CreatureSpawner creatureSpawner = (CreatureSpawner) clickedBlock.getState();
 
         Player player = e.getPlayer();
 
         // check if player has permission to right-click the item
         Optional<Island> islandOptional = BentoBox.getInstance().getIslands().getIslandAt(clickedBlock.getLocation());
-        if(!SkyBlockUtils.isAllowed(player, islandOptional, Flags.BREAK_BLOCKS)){
+        if (!SkyBlockUtils.isAllowed(player, islandOptional, Flags.BREAK_BLOCKS)) {
             return;
         }
 
-        Inventory inventory = InventoryUtils.createInventoryForSpawner(creatureSpawner);
+        Inventory inventory = InventoryUtils.createUpgradeInventory(clickedBlock);
 
         if (inventory == null) {
             return;
@@ -137,9 +139,9 @@ public class SpawnerEvents implements Listener {
 
         Logger.info("Place1");
 
-        CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
+//        CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
 
-        Inventory inventory = InventoryUtils.createInventoryForSpawner(cs);
+        Inventory inventory = InventoryUtils.createUpgradeInventory(spawnerBlock);
 
         if (inventory == null) {
             return;
@@ -147,46 +149,39 @@ public class SpawnerEvents implements Listener {
 
         Logger.info("Place2");
 
+        ItemStack clickedItem = e.getCurrentItem();
 
-        if (!inventory.getItem(InventoryUtils.UPGRADE_ITEM_INDEX).equals(e.getCurrentItem())) {
+        boolean upgradeItemClicked = itemWasClicked(InventoryUtils.createUpgradeItem(spawnerBlock), clickedItem);
+        boolean downgradeItemClicked = itemWasClicked(InventoryUtils.createDowngradeItem(spawnerBlock), clickedItem);
+
+        // -- if one of the items are clicked then we continue
+        if (!upgradeItemClicked && !downgradeItemClicked) {
             return;
         }
+
+//        if (!inventory.getItem(InventoryUtils.MID_CHEST_INV_SLOT).equals(clickedItem)) {
+//            return;
+//        }
 //        // check if the 'upgrade item' is clicked
 //        if (!inventory.getItem(e.getSlot()).equals(item)) {
 //            return;
 //        }
 
-        Logger.info("Place4");
-        SpawnerData nextSpawnerData = SpawnerUtils.nextSpawnerData(cs);
-        if (nextSpawnerData == null) {
-            return;
+        boolean downgraded = false;
+        boolean upgraded = false;
+
+        if (upgradeItemClicked) {
+            upgraded = upgradeItemClicked(player, spawnerBlock);
         }
 
-        Logger.info("Place5");
-        EntityType spawnedType = EntityType.fromName(nextSpawnerData.getSpawner_type());
-
-        String hologramName = HologramUtils.getBlockHologramName(spawnerBlock);
-
-        Economy economy = PixelSpawners.getEconomy();
-        double playBalance = economy.getBalance(player);
-
-        if (playBalance < nextSpawnerData.getPrice()) {
-            player.sendMessage("§c(!) You don't have enough balance!");
-            player.closeInventory();
-            return;
+        if (downgradeItemClicked) {
+            downgraded = downgradeItemClicked(player, spawnerBlock);
         }
 
-        if (!SpawnerUtils.upgradeSpawnerTo(spawnerBlock, spawnedType)) {
+        // no upgraded, no downgraded, skip sound and particels
+        if(!upgraded && !downgraded){
             return;
         }
-        economy.withdrawPlayer(player, nextSpawnerData.getPrice());
-
-        Logger.info("Place6");
-        HologramUtils.removeHologram(hologramName);
-        HologramUtils.createHologramForSpawner(spawnerBlock);
-
-        player.closeInventory();
-        player.sendMessage("§a(!) Spawner has been upgraded to " + SpawnerUtils.getSpawnerName(spawnedType));
 
         Location spawnerCenterLocation = spawnerBlock.getLocation().toCenterLocation();
 
@@ -194,6 +189,82 @@ public class SpawnerEvents implements Listener {
         Particle particle = Particle.valueOf(PixelSpawners.getInstance().getConfig().getString("upgrade-particle"));
         player.getWorld().playSound(spawnerCenterLocation, sound, 10F, 1F);
         player.getWorld().spawnParticle(particle, spawnerCenterLocation, 100);
+    }
+
+    boolean itemWasClicked(ItemStack itemStack, ItemStack clickedItem) {
+        if (itemStack == null) {
+            return false;
+        }
+
+        return itemStack.equals(clickedItem);
+    }
+
+    public boolean upgradeItemClicked(Player player, Block spawnerBlock) {
+        SpawnerData nextSpawnerData = SpawnerUtils.nextSpawnerData((CreatureSpawner) spawnerBlock.getState());
+        if (nextSpawnerData == null) {
+            return false;
+        }
+
+        Logger.info("Place5");
+        EntityType spawnedType = EntityType.fromName(nextSpawnerData.getSpawner_type());
+        String hologramName = HologramUtils.getBlockHologramName(spawnerBlock);
+
+        if (!executeBuying(player, spawnerBlock, nextSpawnerData, spawnedType)){
+            return false;
+        }
+
+        Logger.info("Place6");
+        HologramUtils.removeHologram(hologramName);
+        HologramUtils.createHologramForSpawner(spawnerBlock);
+
+        player.closeInventory();
+        player.sendMessage("§a(!) Spawner has been upgraded to " + SpawnerUtils.getSpawnerName(spawnedType));
+        return true;
+    }
+
+    // true - successful
+    // false - unsuccessful
+    private static boolean executeBuying(Player player, Block spawnerBlock, SpawnerData nextSpawnerData, EntityType spawnedType) {
+
+        if(SpawnerUtils.spawnerBlockPersistentDataContainsSpawnType(spawnerBlock,nextSpawnerData)){
+            return SpawnerUtils.changeSpawnerTo(spawnerBlock, spawnedType);
+        }
+
+        Economy economy = PixelSpawners.getEconomy();
+        double playBalance = economy.getBalance(player);
+
+        if (playBalance < nextSpawnerData.getPrice()) {
+            player.sendMessage("§c(!) You don't have enough balance!");
+            player.closeInventory();
+            return false;
+        }
+
+        if (!SpawnerUtils.changeSpawnerTo(spawnerBlock, spawnedType)) {
+            return false;
+        }
+        economy.withdrawPlayer(player, nextSpawnerData.getPrice());
+        return true;
+    }
+
+    public boolean downgradeItemClicked(Player player, Block spawnerBlock) {
+        SpawnerData previousSpawnerData = SpawnerUtils.previousSpawnerData((CreatureSpawner) spawnerBlock.getState());
+        if (previousSpawnerData == null) {
+            return false;
+        }
+
+        EntityType spawnedType = EntityType.fromName(previousSpawnerData.getSpawner_type());
+        String hologramName = HologramUtils.getBlockHologramName(spawnerBlock);
+
+        if (!SpawnerUtils.changeSpawnerTo(spawnerBlock, spawnedType)) {
+            return false;
+        }
+
+        HologramUtils.removeHologram(hologramName);
+        HologramUtils.createHologramForSpawner(spawnerBlock);
+
+        player.closeInventory();
+        player.sendMessage("§e(!) Spawner has been downgraded to " + SpawnerUtils.getSpawnerName(spawnedType));
+        return true;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

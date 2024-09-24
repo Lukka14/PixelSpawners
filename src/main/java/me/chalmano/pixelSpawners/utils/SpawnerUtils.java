@@ -1,11 +1,17 @@
 package me.chalmano.pixelSpawners.utils;
 
+import com.jeff_media.customblockdata.CustomBlockData;
+import me.chalmano.pixelSpawners.PixelSpawners;
 import me.chalmano.pixelSpawners.data.SpawnersReader;
+import me.chalmano.pixelSpawners.enums.Const;
 import me.chalmano.pixelSpawners.models.SpawnerData;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -48,7 +54,7 @@ public class SpawnerUtils {
      */
     public static SpawnerData getSpawnerDataFor(EntityType spawnedType) {
 
-        if(spawnedType == null){
+        if (spawnedType == null) {
             return null;
         }
 
@@ -106,11 +112,11 @@ public class SpawnerUtils {
         return spawnedType == null ? "Unknown" : CommonUtils.firstToUpperCase(spawnedType.name());
     }
 
-    public static boolean upgradeSpawnerTo(Block spawnerBlock, EntityType entityType) {
+    public static boolean changeSpawnerTo(Block spawnerBlock, EntityType entityType) {
         CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
 
         if (cs.getSpawnedType() == null) {
-            Logger.info("cs.getSpawnedType() is null #upgradeSpawnerTo()");
+            Logger.info("cs.getSpawnedType() is null #changeSpawnerTo()");
             return false;
         }
 
@@ -121,7 +127,7 @@ public class SpawnerUtils {
 
         int spawnPerMinute = getSpawnerDataFor(cs).getSpawn_time();
         setSpawnTime(cs, spawnPerMinute);
-
+        addMobTypeToSpawnerPersistentData(spawnerBlock, entityType);
 
         return true;
     }
@@ -131,16 +137,66 @@ public class SpawnerUtils {
     public static void setSpawnTime(CreatureSpawner cs, int spawnTime) {
         int delay = spawnTime * 20;
 
-        if(delay > cs.getMinSpawnDelay()){
+        if (delay > cs.getMinSpawnDelay()) {
             cs.setMaxSpawnDelay(delay);
             cs.setMinSpawnDelay(delay);
-        }else{
+        } else {
             cs.setMinSpawnDelay(delay);
             cs.setMaxSpawnDelay(delay);
         }
 
         cs.setSpawnCount(1);
         cs.update(true);
+    }
+
+    public static void addMobTypeToSpawnerPersistentData(Block spawnerBlock, EntityType entityType) {
+        PersistentDataContainer customBlockData = CommonUtils.getPersistentDataContainerFor(spawnerBlock);
+        NamespacedKey persistentKey = CommonUtils.getPersistentKey();
+
+        String entityName = entityType.name();
+        String value = "";
+
+        if (customBlockData.has(persistentKey)) {
+            String persistentDataValue = customBlockData.get(persistentKey, PersistentDataType.STRING);
+
+            //already contains entity data
+            if (persistentDataValue != null && persistentDataValue.contains(entityName)) {
+                return;
+            }
+
+            value += addSep(persistentDataValue);
+        }
+
+        value += addSep(entityName);
+        customBlockData.set(persistentKey, PersistentDataType.STRING, value);
+    }
+
+    // add data separator, currently - ';'
+    public static String addSep(String str) {
+        return str + Const.SPAWNER_INFO_SEPARATOR;
+    }
+
+    public static boolean spawnerBlockPersistentDataContainsSpawnType(Block spawnerBlock, SpawnerData spawnerData){
+        NamespacedKey persistentKey = CommonUtils.getPersistentKey();
+        PersistentDataContainer persistentDataContainerFor = CommonUtils.getPersistentDataContainerFor(spawnerBlock);
+        if(!persistentDataContainerFor.has(persistentKey)){
+            return false;
+        }
+        String persistentDataStr = persistentDataContainerFor.get(persistentKey, PersistentDataType.STRING);
+
+        if(persistentDataStr == null){
+            return false;
+        }
+
+        String[] entities = persistentDataStr.split(Const.SPAWNER_INFO_SEPARATOR);
+
+        for (String entity : entities) {
+            if(entity.equalsIgnoreCase(spawnerData.getSpawner_type())){
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }

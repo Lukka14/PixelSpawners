@@ -40,6 +40,14 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <relocations>
+                        <relocation>
+                            <pattern>com.jeff_media.customblockdata</pattern>
+                            <shadedPattern>me.chalmano.pixelSpawners.customblockdata</shadedPattern>
+                        </relocation>
+                    </relocations>
+                </configuration>
             </plugin>
         </plugins>
         <resources>
@@ -113,6 +121,12 @@
             <artifactId>bentobox</artifactId>
             <version>2.5.3</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jeff-media</groupId>
+            <artifactId>custom-block-data</artifactId>
+            <version>2.2.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

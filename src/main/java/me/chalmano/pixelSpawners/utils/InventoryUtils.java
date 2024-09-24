@@ -1,6 +1,7 @@
 package me.chalmano.pixelSpawners.utils;
 
 import me.chalmano.pixelSpawners.data.SpawnersReader;
+import me.chalmano.pixelSpawners.enums.Const;
 import me.chalmano.pixelSpawners.inventory.SpawnerInventory;
 import me.chalmano.pixelSpawners.models.Drop;
 import me.chalmano.pixelSpawners.models.SpawnerData;
@@ -11,23 +12,28 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class InventoryUtils {
 
-    public static final int UPGRADE_ITEM_INDEX = 13;
+    public static final int MID_CHEST_INV_SLOT = 13;
 
-    public static Inventory createInventoryForSpawner(CreatureSpawner currentCreatureSpawner) {
-
+    public static Inventory createUpgradeInventory(Block spawnerBlock) {
+        CreatureSpawner currentCreatureSpawner = (CreatureSpawner) spawnerBlock.getState();
         SpawnerData nextSpawnerData = SpawnerUtils.nextSpawnerData(currentCreatureSpawner);
+        SpawnerData previousSpawnerData = SpawnerUtils.previousSpawnerData(currentCreatureSpawner);
 
         Logger.info("Creating new inventory");
         Inventory inventory = Bukkit.createInventory(new SpawnerInventory(), InventoryType.CHEST, Component.text("Upgrade Spawner", TextColor.color(110, 49, 33)));
@@ -45,12 +51,20 @@ public class InventoryUtils {
             fillInventory(inventory, Material.ORANGE_STAINED_GLASS_PANE);
         } else {
             fillInventory(inventory, Material.GRAY_STAINED_GLASS_PANE);
-            upgradeItem = createUpgradeItem(nextSpawnerData);
+            upgradeItem = createUpgradeItem(spawnerBlock);
         }
 
         // todo if upgrade is max still open the inventory with current mob display item saying it's maxed.
-        inventory.setItem(UPGRADE_ITEM_INDEX, upgradeItem);
+        ItemStack downgradeItem = createDowngradeItem(previousSpawnerData);
 
+        int upgradeItemSlot = MID_CHEST_INV_SLOT;
+
+        if(downgradeItem != null) {
+            inventory.setItem(upgradeItemSlot-1, downgradeItem);
+            upgradeItemSlot++;
+        }
+
+        inventory.setItem(upgradeItemSlot, upgradeItem);
         return inventory;
     }
 
@@ -74,6 +88,22 @@ public class InventoryUtils {
         return inventory;
     }
 
+    public static Inventory createDowngradeInventory(CreatureSpawner currentCreatureSpawner) {
+        SpawnerData previousSpawnerData = SpawnerUtils.previousSpawnerData(currentCreatureSpawner);
+
+        if (previousSpawnerData == null) {
+            return null;
+        }
+
+
+        Inventory inventory = Bukkit.createInventory(new SpawnerInventory(), InventoryType.CHEST, Component.text("Spawner Menu", TextColor.color(110, 49, 33)));
+        fillInventory(inventory, Material.ORANGE_STAINED_GLASS_PANE);
+
+
+
+        return inventory;
+    }
+
     private static void fillInventory(Inventory inventory, Material material) {
         ItemStack[] itemStacks = new ItemStack[inventory.getSize()];
         for (int i = 0; i < itemStacks.length; i++) {
@@ -83,7 +113,13 @@ public class InventoryUtils {
         inventory.setContents(itemStacks);
     }
 
-    public static ItemStack createUpgradeItem(SpawnerData nextSpawnerData) {
+    public static ItemStack createUpgradeItem(Block spawnerBlock) {
+        CreatureSpawner currentCreatureSpawner = (CreatureSpawner) spawnerBlock.getState();
+        SpawnerData nextSpawnerData = SpawnerUtils.nextSpawnerData(currentCreatureSpawner);
+        if (nextSpawnerData == null) {
+            return null;
+        }
+
         ItemStack itemStack = new ItemStack(Material.valueOf(nextSpawnerData.getDisplay_item()));
 
         ItemMeta itemMeta = itemStack.getItemMeta();
@@ -96,8 +132,54 @@ public class InventoryUtils {
         String loreColor = "&#f5f520";
 
         loreList.add(Component.empty());
-        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Price: &f$" + nextSpawnerData.getPrice()).decoration(TextDecoration.ITALIC, false));
+
+        String pricePrefix = loreColor + "Price: &f";
+        String priceStr;
+
+        if(SpawnerUtils.spawnerBlockPersistentDataContainsSpawnType(spawnerBlock,nextSpawnerData)){
+            priceStr = pricePrefix + "FREE";
+        }else {
+            priceStr = pricePrefix + "$"+ nextSpawnerData.getPrice();
+        }
+
+        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(priceStr).decoration(TextDecoration.ITALIC, false));
         loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Spawn time: &f" + nextSpawnerData.getSpawn_time() + "s").decoration(TextDecoration.ITALIC, false));
+
+        itemMeta.lore(loreList);
+        itemStack.setItemMeta(itemMeta);
+
+        return itemStack;
+    }
+
+
+
+    public static ItemStack createDowngradeItem(Block spawnerBlock) {
+        CreatureSpawner currentCreatureSpawner = (CreatureSpawner) spawnerBlock.getState();
+        return createDowngradeItem(SpawnerUtils.previousSpawnerData(currentCreatureSpawner));
+    }
+
+    public static ItemStack createDowngradeItem(SpawnerData previousSpawnerData) {
+
+        if (previousSpawnerData == null) {
+            return null;
+        }
+
+        ItemStack itemStack = new ItemStack(Material.valueOf(previousSpawnerData.getDisplay_item()));
+
+        ItemMeta itemMeta = itemStack.getItemMeta();
+
+        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300Downgrade to " + CommonUtils.firstToUpperCase(previousSpawnerData.getSpawner_type()) + " Spawner").decoration(TextDecoration.ITALIC, false);
+        itemMeta.displayName(itemName);
+
+        List<Component> loreList = new ArrayList<>();
+
+        String loreColor = "&#f5f520";
+
+        loreList.add(Component.empty());
+        loreList.add(LegacyComponentSerializer.legacy('&').deserialize("&aAfter downgrading, you can still").decoration(TextDecoration.ITALIC, false));
+        loreList.add(LegacyComponentSerializer.legacy('&').deserialize("&aupgrade to current spawner for free!").decoration(TextDecoration.ITALIC, false));
+        loreList.add(Component.empty());
+        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Spawn time: &f" + previousSpawnerData.getSpawn_time() + "s").decoration(TextDecoration.ITALIC, false));
 
         itemMeta.lore(loreList);
         itemStack.setItemMeta(itemMeta);
@@ -135,7 +217,7 @@ public class InventoryUtils {
         loreList.add(CommonUtils.toComponent(loreColor + "Drops: "));
 
         for (Drop drop : spawnerData.getDrops()) {
-            loreList.add(CommonUtils.toComponent(loreColor + " - " + drop.getItem() + " x"+drop.getAmount()+", Chance: " + drop.getChance()*100.0+"%"));
+            loreList.add(CommonUtils.toComponent(loreColor + " - " + drop.getItem() + " x" + drop.getAmount() + ", Chance: " + drop.getChance() * 100.0 + "%"));
         }
 
         loreList.add(Component.empty());
