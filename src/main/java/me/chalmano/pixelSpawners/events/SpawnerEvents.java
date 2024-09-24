@@ -4,12 +4,12 @@ import me.chalmano.pixelSpawners.PixelSpawners;
 import me.chalmano.pixelSpawners.inventory.SpawnerInventory;
 import me.chalmano.pixelSpawners.models.Drop;
 import me.chalmano.pixelSpawners.models.SpawnerData;
-import me.chalmano.pixelSpawners.utils.HologramUtils;
-import me.chalmano.pixelSpawners.utils.InventoryUtils;
-import me.chalmano.pixelSpawners.utils.Logger;
-import me.chalmano.pixelSpawners.utils.SpawnerUtils;
+import me.chalmano.pixelSpawners.utils.*;
 import net.milkbowl.vault.economy.Economy;
-import org.bukkit.*;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.Entity;
@@ -27,6 +27,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import world.bentobox.bentobox.BentoBox;
+import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.bentobox.lists.Flags;
 
 import java.util.*;
 
@@ -45,17 +48,17 @@ public class SpawnerEvents implements Listener {
 
         CreatureSpawner cs = (CreatureSpawner) blockPlaced.getState();
         SpawnerData spawnerDataFor = SpawnerUtils.getSpawnerDataFor(cs);
-        if(spawnerDataFor != null) {
+        if (spawnerDataFor != null) {
             int spawnTime = spawnerDataFor.getSpawn_time();
             SpawnerUtils.setSpawnTime(cs, spawnTime);
         }
 
         // create hologram
-        if(spawnerDataFor == null){
-            if(PixelSpawners.getInstance().getConfig().getBoolean("all-spawner-holograms")){
+        if (spawnerDataFor == null) {
+            if (PixelSpawners.getInstance().getConfig().getBoolean("all-spawner-holograms")) {
                 HologramUtils.createHologramForSpawner(blockPlaced);
             }
-        }else{
+        } else {
             HologramUtils.createHologramForSpawner(blockPlaced);
         }
 
@@ -80,6 +83,7 @@ public class SpawnerEvents implements Listener {
 
         Block clickedBlock = e.getClickedBlock();
 
+
         if (clickedBlock == null) {
             Logger.info("clickedBlock is null #onSpawnerRightClick()");
             return;
@@ -95,8 +99,13 @@ public class SpawnerEvents implements Listener {
 
         Player player = e.getPlayer();
 
+        // check if player has permission to right-click the item
+        Optional<Island> islandOptional = BentoBox.getInstance().getIslands().getIslandAt(clickedBlock.getLocation());
+        if(!SkyBlockUtils.isAllowed(player, islandOptional, Flags.BREAK_BLOCKS)){
+            return;
+        }
 
-        Inventory inventory = InventoryUtils.createInventory(creatureSpawner);
+        Inventory inventory = InventoryUtils.createInventoryForSpawner(creatureSpawner);
 
         if (inventory == null) {
             return;
@@ -130,7 +139,7 @@ public class SpawnerEvents implements Listener {
 
         CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
 
-        Inventory inventory = InventoryUtils.createInventory(cs);
+        Inventory inventory = InventoryUtils.createInventoryForSpawner(cs);
 
         if (inventory == null) {
             return;
@@ -148,7 +157,7 @@ public class SpawnerEvents implements Listener {
 //        }
 
         Logger.info("Place4");
-        SpawnerData nextSpawnerData = SpawnerUtils.getNextSpawnerData(cs);
+        SpawnerData nextSpawnerData = SpawnerUtils.nextSpawnerData(cs);
         if (nextSpawnerData == null) {
             return;
         }
@@ -184,13 +193,13 @@ public class SpawnerEvents implements Listener {
         Sound sound = Sound.valueOf(PixelSpawners.getInstance().getConfig().getString("upgrade-sound"));
         Particle particle = Particle.valueOf(PixelSpawners.getInstance().getConfig().getString("upgrade-particle"));
         player.getWorld().playSound(spawnerCenterLocation, sound, 10F, 1F);
-        player.getWorld().spawnParticle(particle, spawnerCenterLocation , 100);
+        player.getWorld().spawnParticle(particle, spawnerCenterLocation, 100);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCreatureSpawnEvent(CreatureSpawnEvent event) {
 
-        if(SpawnerUtils.getSpawnerDataFor(event.getEntityType()) == null){
+        if (SpawnerUtils.getSpawnerDataFor(event.getEntityType()) == null) {
             return;
         }
 
@@ -212,8 +221,8 @@ public class SpawnerEvents implements Listener {
 
         SpawnerData spawnerDataFor = SpawnerUtils.getSpawnerDataFor(e.getEntityType());
 
-        if(spawnerDataFor == null) {
-            PixelSpawners.getInstance().getLogger().warning("Spawner data for "+e.getEntityType().name()+" was not found, Entity won't drop custom drops.");
+        if (spawnerDataFor == null) {
+            PixelSpawners.getInstance().getLogger().warning("Spawner data for " + e.getEntityType().name() + " was not found, Entity won't drop custom drops.");
             return;
         }
 

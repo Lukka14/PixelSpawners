@@ -1,8 +1,8 @@
 package me.chalmano.pixelSpawners;
 
 import lombok.Getter;
-import me.chalmano.pixelSpawners.commands.ReloadCommand;
-import me.chalmano.pixelSpawners.commands.ReloadTabCompleter;
+import me.chalmano.pixelSpawners.commands.PixelSpawnerCommand;
+import me.chalmano.pixelSpawners.commands.CommandTabCompleter;
 import me.chalmano.pixelSpawners.events.SpawnerEvents;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -28,8 +28,8 @@ public final class PixelSpawners extends JavaPlugin {
         }
 
 
-        this.getCommand("pixelspawners").setExecutor(new ReloadCommand());
-        this.getCommand("pixelspawners").setTabCompleter(new ReloadTabCompleter());
+        this.getCommand("pixelspawners").setExecutor(new PixelSpawnerCommand());
+        this.getCommand("pixelspawners").setTabCompleter(new CommandTabCompleter());
 
         this.getServer().getPluginManager().registerEvents(new SpawnerEvents(), this);
 

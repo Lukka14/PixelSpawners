@@ -12,11 +12,14 @@ dependencies:
     Vault:
       load: BEFORE
       required: true
+    BentoBox:
+      load: BEFORE
+      required: true
 
 commands:
   pixelspawners:
     description: "Reload plugin configurations"
-    usage: "/ps reload"
+    usage: "/ps <subcommand>"
     aliases: [ps]
     permission: pixelspawners.reload
     permission-message: "You do not have permission to use this command"

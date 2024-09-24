@@ -65,7 +65,7 @@ public class SpawnerUtils {
         return null;
     }
 
-    public static SpawnerData getNextSpawnerData(CreatureSpawner currentCreatureSpawner) {
+    public static SpawnerData nextSpawnerData(CreatureSpawner currentCreatureSpawner) {
         SpawnerData currentSpawnerData = SpawnerUtils.getSpawnerDataFor(currentCreatureSpawner);
         if (currentSpawnerData == null) {
             return null;
@@ -80,6 +80,25 @@ public class SpawnerUtils {
         }
 
         return spawnerDataList.get(++currentSpawnerDataIndex);
+    }
+
+    public static SpawnerData previousSpawnerData(SpawnerData currentSpawnerData) {
+        if (currentSpawnerData == null) {
+            return null;
+        }
+
+        List<SpawnerData> spawnerDataList = SpawnersReader.getInstance().getSpawnerData();
+        int currentSpawnerDataIndex = spawnerDataList.indexOf(currentSpawnerData);
+
+        if (currentSpawnerDataIndex < 1) {
+            return null;
+        }
+
+        return spawnerDataList.get(--currentSpawnerDataIndex);
+    }
+
+    public static SpawnerData previousSpawnerData(CreatureSpawner currentCreatureSpawner) {
+        return previousSpawnerData(SpawnerUtils.getSpawnerDataFor(currentCreatureSpawner));
     }
 
 
