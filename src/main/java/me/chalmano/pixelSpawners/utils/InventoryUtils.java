@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -66,6 +67,10 @@ public class InventoryUtils {
         return inventory;
     }
 
+//    public static Inventory createSpawnerMenuInventory() {
+//        return createSpawnerMenuInventory(null);
+//    }
+
     public static Inventory createSpawnerMenuInventory() {
         List<SpawnerData> spawnerDataList = SpawnersReader.getInstance().getSpawnerData();
         if (spawnerDataList == null) {
@@ -80,7 +85,18 @@ public class InventoryUtils {
         int startPosition = 9;
 
         for (SpawnerData spawnerData : spawnerDataList) {
-            inventory.setItem(startPosition++, createItemFor(spawnerData));
+
+            ItemStack spawnerDisplayItem = createItemFor(spawnerData);
+            // add glowing, CURRENTLY DOES NOT WORK!
+//            if (spawnerBlock != null) {
+//                CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
+//                String persistentDataStr = CommonUtils.getPersistentDataContainerFor(spawnerBlock).get(CommonUtils.getPersistentKey(), PersistentDataType.STRING);
+//                if(StringUtils.isNotBlank(persistentDataStr) && persistentDataStr.contains(cs.getSpawnedType().name())){
+//                    addGlowing(spawnerDisplayItem);
+//                }
+//            }
+
+            inventory.setItem(startPosition++, spawnerDisplayItem);
         }
 
         return inventory;
@@ -260,6 +276,14 @@ public class InventoryUtils {
         itemStack.setItemMeta(itemMeta);
 
         return itemStack;
+    }
+
+    // DOES NOT WORK IN 1.2O.3
+    public static void addGlowing(ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        itemMeta.addEnchant(Enchantment.DAMAGE_ALL, 4, true);
+        itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        itemStack.setItemMeta(itemMeta);
     }
 
 }
