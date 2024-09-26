@@ -96,7 +96,6 @@ public class SpawnerEvents implements Listener {
         }
         Logger.info("Material type is SPAWNER #onSpawnerRightClick()");
 
-        Logger.info("Place-1");
 //        CreatureSpawner creatureSpawner = (CreatureSpawner) clickedBlock.getState();
 
         Player player = e.getPlayer();
@@ -112,7 +111,7 @@ public class SpawnerEvents implements Listener {
         if (inventory == null) {
             return;
         }
-        Logger.info("Place-2");
+
         player.openInventory(inventory);
         clickedSpawnerMap.put(player, clickedBlock);
 
@@ -137,7 +136,6 @@ public class SpawnerEvents implements Listener {
             return;
         }
 
-        Logger.info("Place1");
 
 //        CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
 
@@ -147,15 +145,15 @@ public class SpawnerEvents implements Listener {
             return;
         }
 
-        Logger.info("Place2");
 
         ItemStack clickedItem = e.getCurrentItem();
 
         boolean upgradeItemClicked = itemWasClicked(InventoryUtils.createUpgradeItem(spawnerBlock), clickedItem);
         boolean downgradeItemClicked = itemWasClicked(InventoryUtils.createDowngradeItem(spawnerBlock), clickedItem);
+        boolean menuItemClicked = itemWasClicked(InventoryUtils.createMenuItem(), clickedItem);
 
         // -- if one of the items are clicked then we continue
-        if (!upgradeItemClicked && !downgradeItemClicked) {
+        if (!upgradeItemClicked && !downgradeItemClicked && !menuItemClicked) {
             return;
         }
 
@@ -176,6 +174,18 @@ public class SpawnerEvents implements Listener {
 
         if (downgradeItemClicked) {
             downgraded = downgradeItemClicked(player, spawnerBlock);
+        }
+
+        if (menuItemClicked){
+            Inventory spawnerMenuInventory = InventoryUtils.createSpawnerMenuInventory();
+
+            if (spawnerMenuInventory == null) {
+                PixelSpawners.getInstance().getLogger().warning("Could not create Spawner Menu Inventory.");
+                player.closeInventory();
+                return;
+            }
+            player.openInventory(spawnerMenuInventory);
+            return;
         }
 
         // no upgraded, no downgraded, skip sound and particels
@@ -205,7 +215,6 @@ public class SpawnerEvents implements Listener {
             return false;
         }
 
-        Logger.info("Place5");
         EntityType spawnedType = EntityType.fromName(nextSpawnerData.getSpawner_type());
         String hologramName = HologramUtils.getBlockHologramName(spawnerBlock);
 
@@ -213,7 +222,6 @@ public class SpawnerEvents implements Listener {
             return false;
         }
 
-        Logger.info("Place6");
         HologramUtils.removeHologram(hologramName);
         HologramUtils.createHologramForSpawner(spawnerBlock);
 

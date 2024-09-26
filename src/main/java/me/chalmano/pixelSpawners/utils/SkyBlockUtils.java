@@ -16,7 +16,14 @@ public class SkyBlockUtils {
             return true;
         }
 
-        return islandOptional.filter(island -> !island.isAllowed(User.getInstance(player), flag)).isPresent();
+        Logger.info("islandOptional.isPresent() = " + islandOptional.isPresent());
+        if(islandOptional.isPresent()){
+            Island island = islandOptional.get();
+            Logger.info("island = " + island);
+            Logger.info("is allowed = "+island.isAllowed(flag));
+        }
+
+        return islandOptional.filter(island -> island.isAllowed(User.getInstance(player), flag)).isPresent();
     }
 
 }

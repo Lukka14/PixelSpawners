@@ -1,7 +1,6 @@
 package me.chalmano.pixelSpawners.utils;
 
 import me.chalmano.pixelSpawners.data.SpawnersReader;
-import me.chalmano.pixelSpawners.enums.Const;
 import me.chalmano.pixelSpawners.inventory.SpawnerInventory;
 import me.chalmano.pixelSpawners.models.Drop;
 import me.chalmano.pixelSpawners.models.SpawnerData;
@@ -12,7 +11,6 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.event.inventory.InventoryType;
@@ -20,8 +18,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,16 +51,18 @@ public class InventoryUtils {
         }
 
         // todo if upgrade is max still open the inventory with current mob display item saying it's maxed.
-        ItemStack downgradeItem = createDowngradeItem(previousSpawnerData);
+//        ItemStack downgradeItem = createDowngradeItem(previousSpawnerData);
+        ItemStack downgradeItem = null;
 
         int upgradeItemSlot = MID_CHEST_INV_SLOT;
 
-        if(downgradeItem != null) {
-            inventory.setItem(upgradeItemSlot-1, downgradeItem);
+        if (downgradeItem != null) {
+            inventory.setItem(upgradeItemSlot - 1, downgradeItem);
             upgradeItemSlot++;
         }
 
         inventory.setItem(upgradeItemSlot, upgradeItem);
+        inventory.setItem(inventory.getSize() - 1, createMenuItem());
         return inventory;
     }
 
@@ -98,7 +96,6 @@ public class InventoryUtils {
 
         Inventory inventory = Bukkit.createInventory(new SpawnerInventory(), InventoryType.CHEST, Component.text("Spawner Menu", TextColor.color(110, 49, 33)));
         fillInventory(inventory, Material.ORANGE_STAINED_GLASS_PANE);
-
 
 
         return inventory;
@@ -136,10 +133,10 @@ public class InventoryUtils {
         String pricePrefix = loreColor + "Price: &f";
         String priceStr;
 
-        if(SpawnerUtils.spawnerBlockPersistentDataContainsSpawnType(spawnerBlock,nextSpawnerData)){
+        if (SpawnerUtils.spawnerBlockPersistentDataContainsSpawnType(spawnerBlock, nextSpawnerData)) {
             priceStr = pricePrefix + "FREE";
-        }else {
-            priceStr = pricePrefix + "$"+ nextSpawnerData.getPrice();
+        } else {
+            priceStr = pricePrefix + "$" + nextSpawnerData.getPrice();
         }
 
         loreList.add(LegacyComponentSerializer.legacy('&').deserialize(priceStr).decoration(TextDecoration.ITALIC, false));
@@ -150,7 +147,6 @@ public class InventoryUtils {
 
         return itemStack;
     }
-
 
 
     public static ItemStack createDowngradeItem(Block spawnerBlock) {
@@ -205,7 +201,7 @@ public class InventoryUtils {
         ItemStack itemStack = new ItemStack(Material.valueOf(spawnerData.getDisplay_item()));
         ItemMeta itemMeta = itemStack.getItemMeta();
 
-        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300" + spawnerData.getSpawner_type() + " Spawner").decoration(TextDecoration.ITALIC, false);
+        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300" + normalizeName(spawnerData.getSpawner_type()) + " Spawner").decoration(TextDecoration.ITALIC, false);
         itemMeta.displayName(itemName);
 
         List<Component> loreList = new ArrayList<>();
@@ -217,7 +213,7 @@ public class InventoryUtils {
         loreList.add(CommonUtils.toComponent(loreColor + "Drops: "));
 
         for (Drop drop : spawnerData.getDrops()) {
-            loreList.add(CommonUtils.toComponent(loreColor + " - " + drop.getItem() + " x" + drop.getAmount() + ", Chance: " + drop.getChance() * 100.0 + "%"));
+            loreList.add(CommonUtils.toComponent(loreColor + " - " + normalizeName(drop.getItem()) + " x" + drop.getAmount()));
         }
 
         loreList.add(Component.empty());
@@ -236,5 +232,34 @@ public class InventoryUtils {
         return itemStack;
     }
 
+    public static String normalizeName(String itemName) {
+        StringBuilder res = new StringBuilder();
+        String[] split = itemName.split("_");
+
+        for (int i = 0; i < split.length; i++) {
+            String str = split[i];
+
+            if (i != 0) {
+                res.append(" ");
+            }
+
+            res.append(CommonUtils.firstToUpperCase(str));
+        }
+
+        return res.toString();
+    }
+
+    public static ItemStack createMenuItem() {
+        ItemStack itemStack = new ItemStack(Material.NETHER_STAR);
+
+        ItemMeta itemMeta = itemStack.getItemMeta();
+
+        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300Open Menu").decoration(TextDecoration.ITALIC, false);
+        itemMeta.displayName(itemName);
+
+        itemStack.setItemMeta(itemMeta);
+
+        return itemStack;
+    }
 
 }
