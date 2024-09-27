@@ -2,6 +2,7 @@
   {
     "spawner_type": "RABBIT",
     "price": 10000,
+    "xp_drop" : 100,
     "display_item": "RABBIT_HIDE",
     "spawn_time": 60,
     "drops": [

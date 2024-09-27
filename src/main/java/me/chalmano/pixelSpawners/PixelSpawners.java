@@ -2,10 +2,9 @@ package me.chalmano.pixelSpawners;
 
 import com.jeff_media.customblockdata.CustomBlockData;
 import lombok.Getter;
-import me.chalmano.pixelSpawners.commands.PixelSpawnerCommand;
 import me.chalmano.pixelSpawners.commands.CommandTabCompleter;
+import me.chalmano.pixelSpawners.commands.PixelSpawnerCommand;
 import me.chalmano.pixelSpawners.events.SpawnerEvents;
-import me.chalmano.pixelSpawners.utils.SpawnerUtils;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -48,6 +47,7 @@ public final class PixelSpawners extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        getLogger().info("PixelSpawners plugin disabled!");
     }
 
     private boolean setupEconomy() {

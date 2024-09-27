@@ -1,5 +1,6 @@
 package me.chalmano.pixelSpawners.utils;
 
+import me.chalmano.pixelSpawners.PixelSpawners;
 import me.chalmano.pixelSpawners.data.SpawnersReader;
 import me.chalmano.pixelSpawners.inventory.SpawnerInventory;
 import me.chalmano.pixelSpawners.models.Drop;
@@ -27,6 +28,8 @@ public class InventoryUtils {
 
     public static final int MID_CHEST_INV_SLOT = 13;
 
+    public static final String CURRENT_PAGE_TEXT = "Current page: ";
+
     public static Inventory createUpgradeInventory(Block spawnerBlock) {
         CreatureSpawner currentCreatureSpawner = (CreatureSpawner) spawnerBlock.getState();
         SpawnerData nextSpawnerData = SpawnerUtils.nextSpawnerData(currentCreatureSpawner);
@@ -51,9 +54,10 @@ public class InventoryUtils {
             upgradeItem = createUpgradeItem(spawnerBlock);
         }
 
-        // todo if upgrade is max still open the inventory with current mob display item saying it's maxed.
-//        ItemStack downgradeItem = createDowngradeItem(previousSpawnerData);
         ItemStack downgradeItem = null;
+        if (PixelSpawners.getInstance().getConfig().getBoolean("enable_downgrade")) {
+            downgradeItem = createDowngradeItem(previousSpawnerData);
+        }
 
         int upgradeItemSlot = MID_CHEST_INV_SLOT;
 
@@ -67,12 +71,21 @@ public class InventoryUtils {
         return inventory;
     }
 
-//    public static Inventory createSpawnerMenuInventory() {
-//        return createSpawnerMenuInventory(null);
-//    }
-
     public static Inventory createSpawnerMenuInventory() {
-        List<SpawnerData> spawnerDataList = SpawnersReader.getInstance().getSpawnerData();
+        return createSpawnerMenuInventory(0);
+    }
+
+    // create menu inventory which contains spawners for spawnerBlock
+    public static Inventory createSpawnerMenuInventory(Block spawnerBlock) {
+        return createSpawnerMenuInventory();
+    }
+
+    // spawnerDataListIndex starts from 0
+    public static Inventory createSpawnerMenuInventory(int spawnerDataListIndex) {
+        List<List<SpawnerData>> spawnerDataListList = SpawnersReader.getInstance().getSpawnerDataListList();
+
+        List<SpawnerData> spawnerDataList = spawnerDataListList.get(spawnerDataListIndex);
+
         if (spawnerDataList == null) {
             return null;
         }
@@ -97,6 +110,14 @@ public class InventoryUtils {
 //            }
 
             inventory.setItem(startPosition++, spawnerDisplayItem);
+        }
+
+        if (spawnerDataListIndex < spawnerDataListList.size() - 1) {
+            inventory.setItem(inventory.getSize() - 1, createNextPageItem(spawnerDataListIndex + 1));
+        }
+
+        if (spawnerDataListIndex > 0) {
+            inventory.setItem(inventory.getSize() - 9, createPrevPageItem(spawnerDataListIndex + 1));
         }
 
         return inventory;
@@ -124,6 +145,24 @@ public class InventoryUtils {
             itemStacks[i].getItemMeta().displayName(Component.text(""));
         }
         inventory.setContents(itemStacks);
+    }
+
+    public static ItemStack createNextPageItem(int currentPage) {
+        return createPageItem("&cNext page >>", currentPage);
+    }
+
+    public static ItemStack createPrevPageItem(int currentPage) {
+        return createPageItem("&c<< Previous page", currentPage);
+    }
+
+    // next or prev page item
+    public static ItemStack createPageItem(String text, int currentPage) {
+        ItemStack itemStack = new ItemStack(Material.ARROW);
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        itemMeta.displayName(CommonUtils.toComponent(text));
+        itemMeta.lore(List.of(Component.empty(), CommonUtils.toComponent(CURRENT_PAGE_TEXT + currentPage)));
+        itemStack.setItemMeta(itemMeta);
+        return itemStack;
     }
 
     public static ItemStack createUpgradeItem(Block spawnerBlock) {
@@ -226,6 +265,7 @@ public class InventoryUtils {
         loreList.add(Component.empty());
 
         loreList.add(CommonUtils.toComponent(loreColor + "Spawn time: " + spawnerData.getSpawn_time() + "s"));
+        loreList.add(CommonUtils.toComponent(loreColor + "XP Drop: "+spawnerData.getXp_drop()));
         loreList.add(CommonUtils.toComponent(loreColor + "Drops: "));
 
         for (Drop drop : spawnerData.getDrops()) {
@@ -284,6 +324,22 @@ public class InventoryUtils {
         itemMeta.addEnchant(Enchantment.DAMAGE_ALL, 4, true);
         itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         itemStack.setItemMeta(itemMeta);
+    }
+
+    public static int getCurrentPageNumber(Inventory inventory) {
+        int index = inventory.getSize() - 1;
+        try {
+            TextComponent textComponent = (TextComponent) inventory.getItem(index).getItemMeta().lore().get(1);
+            return Integer.parseInt(textComponent.content().split(InventoryUtils.CURRENT_PAGE_TEXT)[1]);
+        } catch (Exception e) {
+            index -= 8;
+            try {
+                TextComponent textComponent = (TextComponent) inventory.getItem(index).getItemMeta().lore().get(1);
+                return Integer.parseInt(textComponent.content().split(InventoryUtils.CURRENT_PAGE_TEXT)[1]);
+            }catch (Exception e2) {
+                return 0;
+            }
+        }
     }
 
 }

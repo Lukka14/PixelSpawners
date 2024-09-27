@@ -31,7 +31,9 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.lists.Flags;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 public class SpawnerEvents implements Listener {
 
@@ -85,7 +87,6 @@ public class SpawnerEvents implements Listener {
 
         Block clickedBlock = e.getClickedBlock();
 
-
         if (clickedBlock == null) {
             Logger.info("clickedBlock is null #onSpawnerRightClick()");
             return;
@@ -122,12 +123,12 @@ public class SpawnerEvents implements Listener {
     @EventHandler
     public void onItemClick(InventoryClickEvent e) {
 
-        if (!(e.getInventory().getHolder(false) instanceof SpawnerInventory)) {
+        Inventory currentInventory = e.getInventory();
+        if (!(currentInventory.getHolder(false) instanceof SpawnerInventory)) {
             return;
         }
         e.setCancelled(true);
 
-//        ItemStack item = e.getCurrentItem();
         Player player = (Player) e.getWhoClicked();
 
         Block spawnerBlock = clickedSpawnerMap.get(player);
@@ -135,9 +136,6 @@ public class SpawnerEvents implements Listener {
         if (spawnerBlock == null) {
             return;
         }
-
-
-//        CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
 
         Inventory inventory = InventoryUtils.createUpgradeInventory(spawnerBlock);
 
@@ -152,18 +150,16 @@ public class SpawnerEvents implements Listener {
         boolean downgradeItemClicked = itemWasClicked(InventoryUtils.createDowngradeItem(spawnerBlock), clickedItem);
         boolean menuItemClicked = itemWasClicked(InventoryUtils.createMenuItem(), clickedItem);
 
+        int currentPageNumber = InventoryUtils.getCurrentPageNumber(currentInventory);
+
+        boolean nextPageItemClicked = itemWasClicked(InventoryUtils.createNextPageItem(currentPageNumber), clickedItem);
+        boolean prevPageItemClicked = itemWasClicked(InventoryUtils.createPrevPageItem(currentPageNumber), clickedItem);
+
         // -- if one of the items are clicked then we continue
-        if (!upgradeItemClicked && !downgradeItemClicked && !menuItemClicked) {
+        if (!upgradeItemClicked && !downgradeItemClicked && !menuItemClicked && !nextPageItemClicked
+        && !prevPageItemClicked) {
             return;
         }
-
-//        if (!inventory.getItem(InventoryUtils.MID_CHEST_INV_SLOT).equals(clickedItem)) {
-//            return;
-//        }
-//        // check if the 'upgrade item' is clicked
-//        if (!inventory.getItem(e.getSlot()).equals(item)) {
-//            return;
-//        }
 
         boolean downgraded = false;
         boolean upgraded = false;
@@ -177,7 +173,10 @@ public class SpawnerEvents implements Listener {
         }
 
         if (menuItemClicked){
-            Inventory spawnerMenuInventory = InventoryUtils.createSpawnerMenuInventory();
+            Integer indexForSpawnerData = SpawnerUtils.getIndexFor(spawnerBlock);
+            int menuPageIndex = indexForSpawnerData == null ? 0 : indexForSpawnerData;
+
+            Inventory spawnerMenuInventory = InventoryUtils.createSpawnerMenuInventory(menuPageIndex);
 
             if (spawnerMenuInventory == null) {
                 PixelSpawners.getInstance().getLogger().warning("Could not create Spawner Menu Inventory.");
@@ -185,6 +184,22 @@ public class SpawnerEvents implements Listener {
                 return;
             }
             player.openInventory(spawnerMenuInventory);
+            return;
+        }
+
+        if (nextPageItemClicked) {
+            Inventory spawnerMenuInventory = InventoryUtils.createSpawnerMenuInventory(currentPageNumber);
+            if (spawnerMenuInventory != null) {
+                player.openInventory(spawnerMenuInventory);
+            }
+            return;
+        }
+
+        if (prevPageItemClicked) {
+            Inventory spawnerMenuInventory = InventoryUtils.createSpawnerMenuInventory(currentPageNumber-2);
+            if (spawnerMenuInventory != null) {
+                player.openInventory(spawnerMenuInventory);
+            }
             return;
         }
 
@@ -317,6 +332,8 @@ public class SpawnerEvents implements Listener {
 
         e.getDrops().clear();
         e.getDrops().addAll(dropItems);
+
+        e.setDroppedExp(spawnerDataFor.getXp_drop());
     }
 
 }

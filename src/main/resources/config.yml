@@ -12,3 +12,7 @@ upgrade-particle: DRAGON_BREATH
 
 # Create hologram for spawner which is not in spawners.json
 all-spawner-holograms: false
+
+# EXPERIMENTAL
+# enable spawner downgrade
+enable_downgrade: false

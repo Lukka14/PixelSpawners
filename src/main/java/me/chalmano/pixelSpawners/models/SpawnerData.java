@@ -13,4 +13,5 @@ public class SpawnerData {
     private String display_item;
     private int spawn_time;
     private List<Drop> drops;
+    private int xp_drop;
 }

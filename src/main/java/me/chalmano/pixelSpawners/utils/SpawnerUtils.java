@@ -1,7 +1,5 @@
 package me.chalmano.pixelSpawners.utils;
 
-import com.jeff_media.customblockdata.CustomBlockData;
-import me.chalmano.pixelSpawners.PixelSpawners;
 import me.chalmano.pixelSpawners.data.SpawnersReader;
 import me.chalmano.pixelSpawners.enums.Const;
 import me.chalmano.pixelSpawners.models.SpawnerData;
@@ -14,6 +12,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class SpawnerUtils {
@@ -53,54 +52,63 @@ public class SpawnerUtils {
      * @return null if not found
      */
     public static SpawnerData getSpawnerDataFor(EntityType spawnedType) {
+        List<SpawnerData> prevCurrNextSpawnerData = getPrevCurrNextSpawnerData(spawnedType);
+        return prevCurrNextSpawnerData == null ? null : prevCurrNextSpawnerData.get(1);
+    }
+
+
+    public static List<SpawnerData> getPrevCurrNextSpawnerData(EntityType spawnedType) {
+        return spawnedType == null ? null : getPrevCurrNextSpawnerData(spawnedType.name());
+    }
+    /**
+     * @param spawnedType spawnedType
+     * @return null if not found
+     */
+    public static List<SpawnerData> getPrevCurrNextSpawnerData(String spawnedType) {
 
         if (spawnedType == null) {
             return null;
         }
 
-        List<SpawnerData> spawnerDataList = SpawnersReader.getInstance().getSpawnerData();
+        List<SpawnerData> prevCurrNextSpawnerData = new ArrayList<>();
+        List<List<SpawnerData>> spawnerDataListList = SpawnersReader.getInstance().getSpawnerDataListList();
 
-        for (SpawnerData spawnerData : spawnerDataList) {
-            Logger.info(spawnerData.toString());
-            if (spawnedType.name().equalsIgnoreCase(spawnerData.getSpawner_type())) {
-                return spawnerData;
+        for (List<SpawnerData> spawnerDataList : spawnerDataListList) {
+            for (int i = 0; i < spawnerDataList.size(); i++) {
+                if (!spawnedType.equalsIgnoreCase(spawnerDataList.get(i).getSpawner_type())) {
+                    continue;
+                }
+
+                try {
+                    prevCurrNextSpawnerData.add(0, spawnerDataList.get(i - 1));
+                } catch (IndexOutOfBoundsException e) {
+                    prevCurrNextSpawnerData.add(0, null);
+                }
+
+                prevCurrNextSpawnerData.add(1, spawnerDataList.get(i));
+
+                try {
+                    prevCurrNextSpawnerData.add(2, spawnerDataList.get(i + 1));
+                } catch (IndexOutOfBoundsException e) {
+                    prevCurrNextSpawnerData.add(null);
+                }
+
+                return prevCurrNextSpawnerData;
             }
         }
 
-        Logger.info("No spawners found for type " + spawnedType + " #getSpawnerDataFor()");
+        Logger.info("No spawners found for type " + spawnedType);
         return null;
     }
 
     public static SpawnerData nextSpawnerData(CreatureSpawner currentCreatureSpawner) {
-        SpawnerData currentSpawnerData = SpawnerUtils.getSpawnerDataFor(currentCreatureSpawner);
-        if (currentSpawnerData == null) {
-            return null;
-        }
-
-        List<SpawnerData> spawnerDataList = SpawnersReader.getInstance().getSpawnerData();
-        int currentSpawnerDataIndex = spawnerDataList.indexOf(currentSpawnerData);
-
-        if (currentSpawnerDataIndex >= spawnerDataList.size() - 1) {
-            Logger.info("No next item in the spawnerDataList #getNextSpawnerData()");
-            return null;
-        }
-
-        return spawnerDataList.get(++currentSpawnerDataIndex);
+        List<SpawnerData> prevCurrNextSpawnerData = getPrevCurrNextSpawnerData(currentCreatureSpawner.getSpawnedType());
+        return prevCurrNextSpawnerData == null ? null : prevCurrNextSpawnerData.get(2);
     }
 
     public static SpawnerData previousSpawnerData(SpawnerData currentSpawnerData) {
-        if (currentSpawnerData == null) {
-            return null;
-        }
-
-        List<SpawnerData> spawnerDataList = SpawnersReader.getInstance().getSpawnerData();
-        int currentSpawnerDataIndex = spawnerDataList.indexOf(currentSpawnerData);
-
-        if (currentSpawnerDataIndex < 1) {
-            return null;
-        }
-
-        return spawnerDataList.get(--currentSpawnerDataIndex);
+        List<SpawnerData> prevCurrNextSpawnerData = getPrevCurrNextSpawnerData(currentSpawnerData.getSpawner_type());
+        return prevCurrNextSpawnerData == null ? null : prevCurrNextSpawnerData.get(0);
     }
 
     public static SpawnerData previousSpawnerData(CreatureSpawner currentCreatureSpawner) {
@@ -176,27 +184,45 @@ public class SpawnerUtils {
         return str + Const.SPAWNER_INFO_SEPARATOR;
     }
 
-    public static boolean spawnerBlockPersistentDataContainsSpawnType(Block spawnerBlock, SpawnerData spawnerData){
+    public static boolean spawnerBlockPersistentDataContainsSpawnType(Block spawnerBlock, SpawnerData spawnerData) {
         NamespacedKey persistentKey = CommonUtils.getPersistentKey();
         PersistentDataContainer persistentDataContainerFor = CommonUtils.getPersistentDataContainerFor(spawnerBlock);
-        if(!persistentDataContainerFor.has(persistentKey)){
+        if (!persistentDataContainerFor.has(persistentKey)) {
             return false;
         }
         String persistentDataStr = persistentDataContainerFor.get(persistentKey, PersistentDataType.STRING);
 
-        if(persistentDataStr == null){
+        if (persistentDataStr == null) {
             return false;
         }
 
         String[] entities = persistentDataStr.split(Const.SPAWNER_INFO_SEPARATOR);
 
         for (String entity : entities) {
-            if(entity.equalsIgnoreCase(spawnerData.getSpawner_type())){
+            if (entity.equalsIgnoreCase(spawnerData.getSpawner_type())) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    // null if not found
+    public static Integer getIndexFor(Block spawerBlock){
+        SpawnerData spawnerData = getSpawnerDataFor(spawerBlock);
+
+        if (spawnerData == null) {
+            return null;
+        }
+
+        List<List<SpawnerData>> spawnerDataListList = SpawnersReader.getInstance().getSpawnerDataListList();
+        for (int i = 0; i < spawnerDataListList.size(); i++) {
+            if(spawnerDataListList.get(i).contains(spawnerData)){
+                return i;
+            }
+        }
+
+        return null;
     }
 
 }

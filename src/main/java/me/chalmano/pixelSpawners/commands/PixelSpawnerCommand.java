@@ -83,7 +83,7 @@ public class PixelSpawnerCommand implements CommandExecutor {
         TextComponent successMessage = Component.text("(!) Configurations have been successfully reloaded.").color(TextColor.color(60, 229, 40));
         if (!(commandSender instanceof Player player)) {
             PixelSpawners.getInstance().reloadConfig();
-            SpawnersReader.getInstance().updateSpawnerData();
+            SpawnersReader.getInstance().updateSpawnerDataListMap();
             commandSender.sendMessage(successMessage);
             return true;
         }
@@ -96,7 +96,7 @@ public class PixelSpawnerCommand implements CommandExecutor {
         }
 
         PixelSpawners.getInstance().reloadConfig();
-        SpawnersReader.getInstance().updateSpawnerData();
+        SpawnersReader.getInstance().reloadSpawnerData();
         player.sendMessage(successMessage);
         return true;
     }
