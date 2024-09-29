@@ -6,10 +6,7 @@ import me.chalmano.pixelSpawners.models.Drop;
 import me.chalmano.pixelSpawners.models.SpawnerData;
 import me.chalmano.pixelSpawners.utils.*;
 import net.milkbowl.vault.economy.Economy;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.Entity;
@@ -27,13 +24,14 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.lists.Flags;
 
-import java.awt.*;
 import java.util.*;
-import java.util.List;
 
 public class SpawnerEvents implements Listener {
 
@@ -44,12 +42,14 @@ public class SpawnerEvents implements Listener {
 
     @EventHandler
     public void onSpawnerPlace(BlockPlaceEvent e) {
+        addSpawnerData(e);
+
         Block blockPlaced = e.getBlockPlaced();
         if (blockPlaced.getType() != Material.SPAWNER) {
             return;
         }
 
-        CreatureSpawner cs = (CreatureSpawner) blockPlaced.getState();
+        CreatureSpawner cs = (CreatureSpawner) blockPlaced.getState(false);
         SpawnerData spawnerDataFor = SpawnerUtils.getSpawnerDataFor(cs);
         if (spawnerDataFor != null) {
             int spawnTime = spawnerDataFor.getSpawn_time();
@@ -76,7 +76,62 @@ public class SpawnerEvents implements Listener {
             return;
         }
 
+        CreatureSpawner cs = (CreatureSpawner) block.getState();
+
+        if (cs.getSpawnedType() == null) {
+            return;
+        }
+
+        ItemStack itemStack = SpawnerUtils.makeSpawnerItem(block);
+        HashMap<Integer, ItemStack> integerItemStackHashMap = e.getPlayer().getInventory().addItem(itemStack);
+
+        if (integerItemStackHashMap.isEmpty()) {
+            e.getPlayer().sendMessage("§2(!) A spawner has been added to your inventory");
+        } else {
+            e.setCancelled(true);
+            e.getPlayer().sendMessage("§c(!) Can't place spawner in your inventory while it's full!");
+            return;
+        }
+
         HologramUtils.removeHologramForSpawner(block);
+    }
+
+    private void addSpawnerData(BlockPlaceEvent event) {
+        final ItemStack hand = event.getItemInHand();
+        if (hand.getType() == Material.AIR) return;
+
+        ItemMeta meta = hand.getItemMeta();
+        NamespacedKey key = new NamespacedKey(PixelSpawners.getInstance(), "SPAWNER_ENTITY_TYPE");
+
+        if (!meta.getPersistentDataContainer().has(key, PersistentDataType.STRING)) return;
+
+        // probs should check if the entity type even exists
+        EntityType type = EntityType.valueOf(meta.getPersistentDataContainer().get(key, PersistentDataType.STRING));
+
+        // get placed block
+        final Block placedBlock = event.getBlockPlaced();
+
+        // set the block type to a spawner (its always a spawner in this case since the item stack material was a spawner)
+        if (placedBlock.getType() != Material.SPAWNER)
+            placedBlock.setType(Material.SPAWNER);
+
+        // added by me
+        PersistentDataContainer customBlockData = CommonUtils.getPersistentDataContainerFor(placedBlock);
+
+        String storedSpawnerValue = CommonUtils.getPDCData(hand);
+        if (storedSpawnerValue != null) {
+//            Bukkit.broadcastMessage("Found data from Item: " + storedSpawnerValue);
+            customBlockData.set(CommonUtils.getPersistentKey(), PersistentDataType.STRING, storedSpawnerValue);
+
+            CommonUtils.getPDCData(placedBlock);
+        }
+        // end of added by me
+
+        // get the creature spawner
+        CreatureSpawner creatureSpawner = (CreatureSpawner) placedBlock.getState();
+        // set the spawn type
+        creatureSpawner.setSpawnedType(type);
+        creatureSpawner.update();
     }
 
     @EventHandler
@@ -157,7 +212,7 @@ public class SpawnerEvents implements Listener {
 
         // -- if one of the items are clicked then we continue
         if (!upgradeItemClicked && !downgradeItemClicked && !menuItemClicked && !nextPageItemClicked
-        && !prevPageItemClicked) {
+                && !prevPageItemClicked) {
             return;
         }
 
@@ -172,7 +227,7 @@ public class SpawnerEvents implements Listener {
             downgraded = downgradeItemClicked(player, spawnerBlock);
         }
 
-        if (menuItemClicked){
+        if (menuItemClicked) {
             Integer indexForSpawnerData = SpawnerUtils.getIndexFor(spawnerBlock);
             int menuPageIndex = indexForSpawnerData == null ? 0 : indexForSpawnerData;
 
@@ -196,7 +251,7 @@ public class SpawnerEvents implements Listener {
         }
 
         if (prevPageItemClicked) {
-            Inventory spawnerMenuInventory = InventoryUtils.createSpawnerMenuInventory(currentPageNumber-2);
+            Inventory spawnerMenuInventory = InventoryUtils.createSpawnerMenuInventory(currentPageNumber - 2);
             if (spawnerMenuInventory != null) {
                 player.openInventory(spawnerMenuInventory);
             }
@@ -204,7 +259,7 @@ public class SpawnerEvents implements Listener {
         }
 
         // no upgraded, no downgraded, skip sound and particels
-        if(!upgraded && !downgraded){
+        if (!upgraded && !downgraded) {
             return;
         }
 
@@ -233,7 +288,7 @@ public class SpawnerEvents implements Listener {
         EntityType spawnedType = EntityType.fromName(nextSpawnerData.getSpawner_type());
         String hologramName = HologramUtils.getBlockHologramName(spawnerBlock);
 
-        if (!executeBuying(player, spawnerBlock, nextSpawnerData, spawnedType)){
+        if (!executeBuying(player, spawnerBlock, nextSpawnerData, spawnedType)) {
             return false;
         }
 
@@ -241,7 +296,7 @@ public class SpawnerEvents implements Listener {
         HologramUtils.createHologramForSpawner(spawnerBlock);
 
         player.closeInventory();
-        player.sendMessage("§a(!) Spawner has been upgraded to " + SpawnerUtils.getSpawnerName(spawnedType));
+        player.sendMessage("§a(!) Spawner has been upgraded to " + CommonUtils.normalizeName(SpawnerUtils.getSpawnerName(spawnedType)));
         return true;
     }
 
@@ -249,8 +304,8 @@ public class SpawnerEvents implements Listener {
     // false - unsuccessful
     private static boolean executeBuying(Player player, Block spawnerBlock, SpawnerData nextSpawnerData, EntityType spawnedType) {
 
-        if(SpawnerUtils.spawnerBlockPersistentDataContainsSpawnType(spawnerBlock,nextSpawnerData)){
-            return SpawnerUtils.changeSpawnerTo(spawnerBlock, spawnedType);
+        if (SpawnerUtils.spawnerBlockPersistentDataContainsSpawnType(spawnerBlock, nextSpawnerData)) {
+            return SpawnerUtils.setSpawnerTo(spawnerBlock, spawnedType);
         }
 
         Economy economy = PixelSpawners.getEconomy();
@@ -262,7 +317,7 @@ public class SpawnerEvents implements Listener {
             return false;
         }
 
-        if (!SpawnerUtils.changeSpawnerTo(spawnerBlock, spawnedType)) {
+        if (!SpawnerUtils.setSpawnerTo(spawnerBlock, spawnedType)) {
             return false;
         }
         economy.withdrawPlayer(player, nextSpawnerData.getPrice());
@@ -278,7 +333,7 @@ public class SpawnerEvents implements Listener {
         EntityType spawnedType = EntityType.fromName(previousSpawnerData.getSpawner_type());
         String hologramName = HologramUtils.getBlockHologramName(spawnerBlock);
 
-        if (!SpawnerUtils.changeSpawnerTo(spawnerBlock, spawnedType)) {
+        if (!SpawnerUtils.setSpawnerTo(spawnerBlock, spawnedType)) {
             return false;
         }
 
@@ -286,7 +341,7 @@ public class SpawnerEvents implements Listener {
         HologramUtils.createHologramForSpawner(spawnerBlock);
 
         player.closeInventory();
-        player.sendMessage("§e(!) Spawner has been downgraded to " + SpawnerUtils.getSpawnerName(spawnedType));
+        player.sendMessage("§e(!) Spawner has been downgraded to " + CommonUtils.normalizeName(SpawnerUtils.getSpawnerName(spawnedType)));
         return true;
     }
 
@@ -320,18 +375,39 @@ public class SpawnerEvents implements Listener {
             return;
         }
 
+
         List<Drop> dropList = spawnerDataFor.getDrops();
 
-        List<ItemStack> dropItems = new ArrayList<>();
+        if (dropList != null) {
+            Collections.shuffle(dropList);
 
-        for (Drop drop : dropList) {
-            if (Math.random() < drop.getChance()) {
-                dropItems.add(new ItemStack(Material.valueOf(drop.getItem()), (drop.getAmount())));
+            List<ItemStack> dropItems = new ArrayList<>();
+
+            for (Drop drop : dropList) {
+                if (Math.random() < drop.getChance()) {
+
+                    ItemStack item = new ItemStack(Material.valueOf(drop.getItem()), (drop.getAmount()));
+                    ItemMeta itemMeta = item.getItemMeta();
+
+                    if (drop.getName() != null) {
+                        itemMeta.displayName(CommonUtils.toComponent(drop.getName()));
+                    }
+
+                    if (drop.getLores() != null) {
+                        itemMeta.lore(drop.getLores().stream().map(CommonUtils::toComponent).toList());
+                    }
+
+                    item.setItemMeta(itemMeta);
+                    dropItems.add(item);
+
+                    // it won't drop more than 1 item
+                    break;
+                }
             }
+            e.getDrops().clear();
+            e.getDrops().addAll(dropItems);
         }
 
-        e.getDrops().clear();
-        e.getDrops().addAll(dropItems);
 
         e.setDroppedExp(spawnerDataFor.getXp_drop());
     }

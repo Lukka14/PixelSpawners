@@ -1,5 +1,6 @@
 package me.chalmano.pixelSpawners.utils;
 
+import me.chalmano.pixelSpawners.PixelSpawners;
 import me.chalmano.pixelSpawners.data.SpawnersReader;
 import me.chalmano.pixelSpawners.enums.Const;
 import me.chalmano.pixelSpawners.models.SpawnerData;
@@ -8,6 +9,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -60,6 +63,7 @@ public class SpawnerUtils {
     public static List<SpawnerData> getPrevCurrNextSpawnerData(EntityType spawnedType) {
         return spawnedType == null ? null : getPrevCurrNextSpawnerData(spawnedType.name());
     }
+
     /**
      * @param spawnedType spawnedType
      * @return null if not found
@@ -107,6 +111,9 @@ public class SpawnerUtils {
     }
 
     public static SpawnerData previousSpawnerData(SpawnerData currentSpawnerData) {
+        if (currentSpawnerData == null) {
+            return null;
+        }
         List<SpawnerData> prevCurrNextSpawnerData = getPrevCurrNextSpawnerData(currentSpawnerData.getSpawner_type());
         return prevCurrNextSpawnerData == null ? null : prevCurrNextSpawnerData.get(0);
     }
@@ -120,7 +127,7 @@ public class SpawnerUtils {
         return spawnedType == null ? "Unknown" : CommonUtils.firstToUpperCase(spawnedType.name());
     }
 
-    public static boolean changeSpawnerTo(Block spawnerBlock, EntityType entityType) {
+    public static boolean setSpawnerTo(Block spawnerBlock, EntityType entityType) {
         CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
 
         if (cs.getSpawnedType() == null) {
@@ -135,6 +142,7 @@ public class SpawnerUtils {
 
         int spawnPerMinute = getSpawnerDataFor(cs).getSpawn_time();
         setSpawnTime(cs, spawnPerMinute);
+
         addMobTypeToSpawnerPersistentData(spawnerBlock, entityType);
 
         return true;
@@ -153,6 +161,7 @@ public class SpawnerUtils {
             cs.setMaxSpawnDelay(delay);
         }
 
+        cs.resetTimer();
         cs.setSpawnCount(1);
         cs.update(true);
     }
@@ -177,6 +186,8 @@ public class SpawnerUtils {
 
         value += addSep(entityName);
         customBlockData.set(persistentKey, PersistentDataType.STRING, value);
+
+        CommonUtils.getPDCData(spawnerBlock);
     }
 
     // add data separator, currently - ';'
@@ -208,7 +219,7 @@ public class SpawnerUtils {
     }
 
     // null if not found
-    public static Integer getIndexFor(Block spawerBlock){
+    public static Integer getIndexFor(Block spawerBlock) {
         SpawnerData spawnerData = getSpawnerDataFor(spawerBlock);
 
         if (spawnerData == null) {
@@ -217,12 +228,43 @@ public class SpawnerUtils {
 
         List<List<SpawnerData>> spawnerDataListList = SpawnersReader.getInstance().getSpawnerDataListList();
         for (int i = 0; i < spawnerDataListList.size(); i++) {
-            if(spawnerDataListList.get(i).contains(spawnerData)){
+            if (spawnerDataListList.get(i).contains(spawnerData)) {
                 return i;
             }
         }
 
         return null;
+    }
+
+    public static ItemStack makeSpawnerItem(Block spawnerBlock) {
+        CreatureSpawner cs = (CreatureSpawner) spawnerBlock.getState();
+        EntityType entityType = cs.getSpawnedType();
+
+        final ItemStack itemStack = new ItemStack(Material.SPAWNER, 1);
+        ItemMeta meta = itemStack.getItemMeta();
+
+        String persistentDataFor = CommonUtils.getPersistentDataFor(spawnerBlock);
+
+        meta.getPersistentDataContainer().set(new NamespacedKey(PixelSpawners.getInstance(), "SPAWNER_ENTITY_TYPE"), PersistentDataType.STRING, entityType.name());
+        meta.displayName(CommonUtils.toComponent("§a" + CommonUtils.normalizeName(entityType.name()) + " Spawner"));
+        itemStack.setItemMeta(meta);
+
+//        Bukkit.broadcastMessage("Transferring data from Block to Item: " + persistentDataFor);
+        if (persistentDataFor != null) {
+            addPDataToItem(itemStack, persistentDataFor);
+            CommonUtils.getPDCData(itemStack);
+        }
+
+
+        return itemStack;
+    }
+
+    public static void addPDataToItem(ItemStack item, String value) {
+        NamespacedKey key = CommonUtils.getPersistentKey();
+
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, value);
+        item.setItemMeta(meta);
     }
 
 }

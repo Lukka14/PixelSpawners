@@ -8,6 +8,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -37,6 +38,55 @@ public class CommonUtils {
             return customBlockData.get(persistentKey, PersistentDataType.STRING);
         }
         return null;
+    }
+
+    public static String getPDCData(Block spawnerBlock) {
+        NamespacedKey key = CommonUtils.getPersistentKey();
+        PersistentDataContainer container = CommonUtils.getPersistentDataContainerFor(spawnerBlock);
+        return getPDCData(container, key);
+    }
+
+    private static String getPDCData(PersistentDataContainer container, NamespacedKey key) {
+        if (container.has(key, PersistentDataType.STRING)) {
+            String value = container.get(key, PersistentDataType.STRING);
+//            Bukkit.broadcast(Component.text("Spawner data: " + value));
+            return value;
+        }
+//        Bukkit.broadcast(Component.text("No spawner data found."));
+        return null;
+    }
+
+    public static String getPDCData(ItemStack item) {
+        NamespacedKey key = CommonUtils.getPersistentKey();
+        PersistentDataContainer container = item.getItemMeta().getPersistentDataContainer();
+
+        return getPDCData(container, key);
+    }
+
+    public static String normalizeName(String itemName) {
+        StringBuilder res = new StringBuilder();
+        String[] split = itemName.split("_");
+
+        for (int i = 0; i < split.length; i++) {
+            String str = split[i];
+
+            if (i != 0) {
+                res.append(" ");
+            }
+
+            res.append(CommonUtils.firstToUpperCase(str));
+        }
+
+        return res.toString();
+    }
+
+    public static String getSpawnTime(int timeInSeconds){
+        if(timeInSeconds < 60){
+            return timeInSeconds + "s";
+        }
+
+        double timeInMinutes = timeInSeconds / 60.0;
+        return Math.round(Math.round(timeInMinutes*100)/100.0) + "m";
     }
 
 }

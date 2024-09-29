@@ -24,6 +24,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.List;
 
+import static me.chalmano.pixelSpawners.utils.CommonUtils.normalizeName;
+
 public class InventoryUtils {
 
     public static final int MID_CHEST_INV_SLOT = 13;
@@ -176,7 +178,7 @@ public class InventoryUtils {
 
         ItemMeta itemMeta = itemStack.getItemMeta();
 
-        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300Upgrade to " + CommonUtils.firstToUpperCase(nextSpawnerData.getSpawner_type()) + " Spawner").decoration(TextDecoration.ITALIC, false);
+        TextComponent itemName = LegacyComponentSerializer.legacy('&').deserialize("&#FFD300Upgrade to " + CommonUtils.normalizeName(CommonUtils.firstToUpperCase(nextSpawnerData.getSpawner_type())) + " Spawner").decoration(TextDecoration.ITALIC, false);
         itemMeta.displayName(itemName);
 
         List<Component> loreList = new ArrayList<>();
@@ -195,7 +197,7 @@ public class InventoryUtils {
         }
 
         loreList.add(LegacyComponentSerializer.legacy('&').deserialize(priceStr).decoration(TextDecoration.ITALIC, false));
-        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Spawn time: &f" + nextSpawnerData.getSpawn_time() + "s").decoration(TextDecoration.ITALIC, false));
+        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Spawn time: &f" + CommonUtils.getSpawnTime(nextSpawnerData.getSpawn_time())).decoration(TextDecoration.ITALIC, false));
 
         itemMeta.lore(loreList);
         itemStack.setItemMeta(itemMeta);
@@ -230,7 +232,7 @@ public class InventoryUtils {
         loreList.add(LegacyComponentSerializer.legacy('&').deserialize("&aAfter downgrading, you can still").decoration(TextDecoration.ITALIC, false));
         loreList.add(LegacyComponentSerializer.legacy('&').deserialize("&aupgrade to current spawner for free!").decoration(TextDecoration.ITALIC, false));
         loreList.add(Component.empty());
-        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Spawn time: &f" + previousSpawnerData.getSpawn_time() + "s").decoration(TextDecoration.ITALIC, false));
+        loreList.add(LegacyComponentSerializer.legacy('&').deserialize(loreColor + "Spawn time: &f" + CommonUtils.getSpawnTime(previousSpawnerData.getSpawn_time())).decoration(TextDecoration.ITALIC, false));
 
         itemMeta.lore(loreList);
         itemStack.setItemMeta(itemMeta);
@@ -264,7 +266,7 @@ public class InventoryUtils {
         String loreColor = "&a";
         loreList.add(Component.empty());
 
-        loreList.add(CommonUtils.toComponent(loreColor + "Spawn time: " + spawnerData.getSpawn_time() + "s"));
+        loreList.add(CommonUtils.toComponent(loreColor + "Spawn time: " + CommonUtils.getSpawnTime(spawnerData.getSpawn_time()) ));
         loreList.add(CommonUtils.toComponent(loreColor + "XP Drop: "+spawnerData.getXp_drop()));
         loreList.add(CommonUtils.toComponent(loreColor + "Drops: "));
 
@@ -286,23 +288,6 @@ public class InventoryUtils {
         itemStack.setItemMeta(itemMeta);
 
         return itemStack;
-    }
-
-    public static String normalizeName(String itemName) {
-        StringBuilder res = new StringBuilder();
-        String[] split = itemName.split("_");
-
-        for (int i = 0; i < split.length; i++) {
-            String str = split[i];
-
-            if (i != 0) {
-                res.append(" ");
-            }
-
-            res.append(CommonUtils.firstToUpperCase(str));
-        }
-
-        return res.toString();
     }
 
     public static ItemStack createMenuItem() {

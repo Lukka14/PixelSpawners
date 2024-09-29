@@ -15,4 +15,4 @@ all-spawner-holograms: false
 
 # EXPERIMENTAL
 # enable spawner downgrade
-enable_downgrade: false
+enable_downgrade: true

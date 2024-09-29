@@ -71,7 +71,9 @@ public class SpawnersReader {
                 continue;
             }
 
-            spawnerDataListList.add(readSpawnerDataList(file));
+            List<SpawnerData> spawnerData = readSpawnerDataList(file);
+            spawnerDataListList.add(spawnerData);
+            PixelSpawners.getInstance().getLogger().info("Loaded "+spawnerData.size()+" spawners from file: " + file.getName());
         }
 
         if (spawnerDataListList.isEmpty()) {

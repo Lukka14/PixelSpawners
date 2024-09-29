@@ -47,13 +47,13 @@ public class HologramUtils {
 
         List<String> lines = new ArrayList<>();
 
-        String hologramText = "§a" + SpawnerUtils.getSpawnerName(spawnedType) + " Spawner";
+        String hologramText = "§a" + CommonUtils.normalizeName(SpawnerUtils.getSpawnerName(spawnedType)) + " Spawner";
         lines.add(hologramText);
 
         SpawnerData spawnerDataFor = SpawnerUtils.getSpawnerDataFor(creatureSpawner);
 
         if(spawnerDataFor != null) {
-            String hologramLine2 = "§aSpawn time: " + spawnerDataFor.getSpawn_time()+"s";
+            String hologramLine2 = "§aSpawn time: " + CommonUtils.getSpawnTime(spawnerDataFor.getSpawn_time());
             lines.add(hologramLine2);
         }
 
