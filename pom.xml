@@ -6,7 +6,7 @@
 
     <groupId>me.chalmano</groupId>
     <artifactId>pixelspawners</artifactId>
-    <version>1.4</version>
+    <version>1.4.2</version>
     <packaging>jar</packaging>
 
     <name>pixelspawners</name>

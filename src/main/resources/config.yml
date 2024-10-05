@@ -16,3 +16,6 @@ all-spawner-holograms: false
 # EXPERIMENTAL
 # enable spawner downgrade
 enable_downgrade: true
+
+# in milliseconds, 1 second = 1000 milliseconds
+spawner_break_cooldown: 5000

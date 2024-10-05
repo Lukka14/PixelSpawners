@@ -39,6 +39,7 @@ public class SpawnerEvents implements Listener {
 
     private final Set<Entity> spawnerEntities = new HashSet<>();
 
+    private final Map<Player, Long> playerBrokenSpawnerMap = new HashMap<>();
 
     @EventHandler
     public void onSpawnerPlace(BlockPlaceEvent e) {
@@ -82,6 +83,14 @@ public class SpawnerEvents implements Listener {
             return;
         }
 
+        long remainingSpawnerBreakTimeInMs = getRemainingSpawnerBreakTimeInMsForPlayer(e.getPlayer());
+        if (remainingSpawnerBreakTimeInMs > 0) {
+            e.setCancelled(true);
+            e.getPlayer().sendMessage("§c(!) Please wait another " + roundToOneDecimalPlace(remainingSpawnerBreakTimeInMs / 1000.0) + " seconds before breaking spawner again.");
+            return;
+        }
+
+
         ItemStack itemStack = SpawnerUtils.makeSpawnerItem(block);
         HashMap<Integer, ItemStack> integerItemStackHashMap = e.getPlayer().getInventory().addItem(itemStack);
 
@@ -93,7 +102,34 @@ public class SpawnerEvents implements Listener {
             return;
         }
 
+        e.setExpToDrop(0);
         HologramUtils.removeHologramForSpawner(block);
+    }
+
+
+    public long getRemainingSpawnerBreakTimeInMsForPlayer(Player player) {
+        long currentTimeInMs = System.currentTimeMillis();
+        if (!playerBrokenSpawnerMap.containsKey(player)) {
+            playerBrokenSpawnerMap.put(player, currentTimeInMs);
+            return 0;
+        } else {
+            Long lastBreakTimeInMillis = playerBrokenSpawnerMap.get(player);
+
+            long elapsedTimeInMs = currentTimeInMs - lastBreakTimeInMillis;
+
+            long spawnerBreakCooldownInMs = PixelSpawners.getInstance().getConfig().getLong("spawner_break_cooldown");
+
+            long remainingTimeInMs = spawnerBreakCooldownInMs - elapsedTimeInMs;
+
+            if (remainingTimeInMs <= 0) {
+                playerBrokenSpawnerMap.put(player, currentTimeInMs);
+            }
+            return remainingTimeInMs;
+        }
+    }
+
+    public static double roundToOneDecimalPlace(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 
     private void addSpawnerData(BlockPlaceEvent event) {
