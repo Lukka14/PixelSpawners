@@ -83,22 +83,27 @@ public class SpawnerEvents implements Listener {
             return;
         }
 
-        long remainingSpawnerBreakTimeInMs = getRemainingSpawnerBreakTimeInMsForPlayer(e.getPlayer());
-        if (remainingSpawnerBreakTimeInMs > 0) {
-            e.setCancelled(true);
-            e.getPlayer().sendMessage("§c(!) Please wait another " + roundToOneDecimalPlace(remainingSpawnerBreakTimeInMs / 1000.0) + " seconds before breaking spawner again.");
-            return;
+
+        Player player = e.getPlayer();
+        // bypass cd
+        if (!player.hasPermission("pixelspawners.bypass")) {
+            long remainingSpawnerBreakTimeInMs = getRemainingSpawnerBreakTimeInMsForPlayer(player);
+            if (remainingSpawnerBreakTimeInMs > 0) {
+                e.setCancelled(true);
+                player.sendMessage("§c(!) Please wait another " + roundToOneDecimalPlace(remainingSpawnerBreakTimeInMs / 1000.0) + " seconds before breaking spawner again.");
+                return;
+            }
         }
 
 
         ItemStack itemStack = SpawnerUtils.makeSpawnerItem(block);
-        HashMap<Integer, ItemStack> integerItemStackHashMap = e.getPlayer().getInventory().addItem(itemStack);
+        HashMap<Integer, ItemStack> integerItemStackHashMap = player.getInventory().addItem(itemStack);
 
         if (integerItemStackHashMap.isEmpty()) {
-            e.getPlayer().sendMessage("§2(!) A spawner has been added to your inventory");
+            player.sendMessage("§2(!) A spawner has been added to your inventory");
         } else {
             e.setCancelled(true);
-            e.getPlayer().sendMessage("§c(!) Can't place spawner in your inventory while it's full!");
+            player.sendMessage("§c(!) Can't place spawner in your inventory while it's full!");
             return;
         }
 
