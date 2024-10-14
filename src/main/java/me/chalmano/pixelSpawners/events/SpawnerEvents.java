@@ -27,6 +27,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.eclipse.sisu.Priority;
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.lists.Flags;
@@ -70,7 +71,7 @@ public class SpawnerEvents implements Listener {
     }
 
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onSpawnerBreak(BlockBreakEvent e) {
         Block block = e.getBlock();
         if (block.getType() != Material.SPAWNER) {
@@ -95,6 +96,9 @@ public class SpawnerEvents implements Listener {
             }
         }
 
+        if(e.isCancelled()){
+            return;
+        }
 
         ItemStack itemStack = SpawnerUtils.makeSpawnerItem(block);
         HashMap<Integer, ItemStack> integerItemStackHashMap = player.getInventory().addItem(itemStack);
